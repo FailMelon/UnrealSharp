@@ -4,14 +4,14 @@ using UnrealSharp.Interop;
 
 namespace UnrealSharp;
 
-internal static class MarshalingDelegates<T>
+public static class MarshalingDelegates<T>
 {
     public delegate void ToNative(IntPtr nativeBuffer, int arrayIndex, T obj);
     public delegate T FromNative(IntPtr nativeBuffer, int arrayIndex);
     public delegate void DestructInstance(IntPtr nativeBuffer, int arrayIndex);
 }
 
-internal static class BlittableMarshaller<T>
+public static class BlittableMarshaller<T>
 { 
     public static void ToNative(IntPtr nativeBuffer, int arrayIndex, T obj)
     {
@@ -46,7 +46,7 @@ internal static class BlittableMarshaller<T>
     }
 }
 
-internal static class BoolMarshaller
+public static class BoolMarshaller
 {
     public static void ToNative(IntPtr nativeBuffer, int arrayIndex, bool obj)
     {
@@ -59,7 +59,7 @@ internal static class BoolMarshaller
     }
 }
 
-internal static class ObjectMarshaller<T> where T : UnrealSharpObject
+public static class ObjectMarshaller<T> where T : UnrealSharpObject
 { 
     public static void ToNative(IntPtr nativeBuffer, int arrayIndex, T obj)
     {
@@ -79,7 +79,7 @@ internal static class ObjectMarshaller<T> where T : UnrealSharpObject
     }
 }
 
-internal static class StringMarshaller
+public static class StringMarshaller
 {
     public static void ToNative(IntPtr nativeBuffer, int arrayIndex, string obj)
     {

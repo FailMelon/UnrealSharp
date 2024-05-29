@@ -30,7 +30,7 @@ public abstract class DelegateBase<TDelegate> : IDelegateBase where TDelegate : 
     public abstract void BindUFunction(WeakObject<Object> targetObject, Name functionName);
 }
 
-internal class DelegateMarshaller<TDelegate> where TDelegate : IDelegateBase, new()
+public class DelegateMarshaller<TDelegate> where TDelegate : IDelegateBase, new()
 {
     public static TDelegate FromNative(IntPtr nativeBuffer, IntPtr nativeProperty, int arrayIndex)
     {
