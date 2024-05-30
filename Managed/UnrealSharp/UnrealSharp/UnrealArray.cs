@@ -156,6 +156,8 @@ public abstract class UnrealArrayBase<T> : IEnumerable<T>
     }
 }
 
+//Hide implementation function from Intellisense/ReSharper
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public class ArrayCopyMarshaller<T>
 {
     private readonly IntPtr _nativeProperty;

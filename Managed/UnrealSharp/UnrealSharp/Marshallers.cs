@@ -4,6 +4,8 @@ using UnrealSharp.Interop;
 
 namespace UnrealSharp;
 
+//Hide implementation function from Intellisense/ReSharper
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public static class MarshalingDelegates<T>
 {
     public delegate void ToNative(IntPtr nativeBuffer, int arrayIndex, T obj);
@@ -11,6 +13,8 @@ public static class MarshalingDelegates<T>
     public delegate void DestructInstance(IntPtr nativeBuffer, int arrayIndex);
 }
 
+//Hide implementation function from Intellisense/ReSharper
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public static class BlittableMarshaller<T>
 { 
     public static void ToNative(IntPtr nativeBuffer, int arrayIndex, T obj)
@@ -46,6 +50,8 @@ public static class BlittableMarshaller<T>
     }
 }
 
+//Hide implementation function from Intellisense/ReSharper
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public static class BoolMarshaller
 {
     public static void ToNative(IntPtr nativeBuffer, int arrayIndex, bool obj)
@@ -59,6 +65,8 @@ public static class BoolMarshaller
     }
 }
 
+//Hide implementation function from Intellisense/ReSharper
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public static class ObjectMarshaller<T> where T : UnrealSharpObject
 { 
     public static void ToNative(IntPtr nativeBuffer, int arrayIndex, T obj)
@@ -79,6 +87,8 @@ public static class ObjectMarshaller<T> where T : UnrealSharpObject
     }
 }
 
+//Hide implementation function from Intellisense/ReSharper
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public static class StringMarshaller
 {
     public static void ToNative(IntPtr nativeBuffer, int arrayIndex, string obj)

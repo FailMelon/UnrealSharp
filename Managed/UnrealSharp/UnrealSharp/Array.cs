@@ -146,6 +146,8 @@ public class Array<T> : UnrealArrayBase<T>, IList<T>
     }
 }
 
+//Hide implementation function from Intellisense/ReSharper
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public class ArrayMarshaller<T>(int length, IntPtr nativeProperty, MarshalingDelegates<T>.ToNative toNative, MarshalingDelegates<T>.FromNative fromNative)
 {
     private readonly Array<T>[] _wrappers = new Array<T> [length];
