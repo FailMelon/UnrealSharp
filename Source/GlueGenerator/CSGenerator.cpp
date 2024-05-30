@@ -659,6 +659,8 @@ void FCSGenerator::ExportInterface(UClass* Interface, FCSScriptBuilder& Builder)
 	Builder.CloseBrace();
 
 	Builder.AppendLine();
+	Builder.AppendLine("//Hide implementation function from Intellisense/ReSharper");
+	Builder.AppendLine("[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]");
 	Builder.AppendLine(FString::Printf(TEXT("public static class %sMarshaller"), *InterfaceName));
 	Builder.OpenBrace();
 	Builder.AppendLine(FString::Printf(TEXT("public static void ToNative(IntPtr nativeBuffer, int arrayIndex, %s obj)"), *InterfaceName));
@@ -1172,6 +1174,8 @@ void FCSGenerator::ExportStructMarshaller(FCSScriptBuilder& Builder, const UScri
 	FString StructName = NameMapper.GetStructScriptName(Struct);
 
 	Builder.AppendLine();
+	Builder.AppendLine("//Hide implementation function from Intellisense/ReSharper");
+	Builder.AppendLine("[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]");
 	Builder.AppendLine(FString::Printf(TEXT("public static class %sMarshaller"), *StructName));
 	Builder.OpenBrace();
 
