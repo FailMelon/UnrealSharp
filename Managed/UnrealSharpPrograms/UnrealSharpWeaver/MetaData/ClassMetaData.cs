@@ -135,11 +135,15 @@ public class ClassMetaData : TypeReferenceMetadata
         
         foreach (var typeInterface in ClassDefinition.Interfaces)
         {
-            var interfaceType = typeInterface.InterfaceType.Resolve();
-            if (WeaverHelper.IsUInterface(interfaceType))
+            TypeDefinition interfaceType = typeInterface.InterfaceType.Resolve();
+
+            if (interfaceType == WeaverHelper.IInterfaceType || !WeaverHelper.IsUInterface(interfaceType))
             {
-                Interfaces.Add(interfaceType.Name);
+                continue;
             }
+            
+            string interfaceNoPrefix = interfaceType.Name.Substring(1);
+            Interfaces.Add(interfaceNoPrefix);
         }
     }
 }

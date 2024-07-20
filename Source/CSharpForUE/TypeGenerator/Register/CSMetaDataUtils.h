@@ -1,8 +1,6 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "Misc/Guid.h"
-#include "UObject/Script.h"
 #include "Dom/JsonObject.h"
 #include "MetaData/CSFunctionMetaData.h"
 #include "UObject/ObjectMacros.h"
@@ -14,7 +12,20 @@ namespace FCSMetaDataUtils
 	void SerializeProperty(const TSharedPtr<FJsonObject>& PropertyMetaData, FCSPropertyMetaData& PropertiesMetaData, EPropertyFlags DefaultFlags = CPF_None);
 
 	template<typename FlagType>
-	FlagType GetFlags(const TSharedPtr<FJsonObject>& PropertyInfo, const FString& StringField);
+	FlagType GetFlags(const TSharedPtr<FJsonObject>& PropertyInfo, const FString& StringField)
+	{
+		FString FoundStringField;
+		PropertyInfo->TryGetStringField(StringField, FoundStringField);
+
+		if (FoundStringField.IsEmpty())
+		{
+			return static_cast<FlagType>(0);
+		}
+
+		uint64 FunctionFlagsInt;
+		TTypeFromString<uint64>::FromString(FunctionFlagsInt, *FoundStringField);
+		return static_cast<FlagType>(FunctionFlagsInt);
+	};
 	
 	void SerializeFromJson(const TSharedPtr<FJsonObject>& JsonObject, TMap<FString, FString>& MetaDataMap);
 	void ApplyMetaData(const TMap<FString, FString>& MetaDataMap, UField* Field);

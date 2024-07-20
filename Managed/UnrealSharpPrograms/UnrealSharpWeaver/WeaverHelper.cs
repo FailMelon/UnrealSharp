@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using Mono.Cecil;
+﻿using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Mono.Cecil.Rocks;
 using Mono.Collections.Generic;
@@ -12,6 +11,8 @@ public static class WeaverHelper
     public static readonly string UnrealSharpNamespace = "UnrealSharp";
     public static readonly string InteropNameSpace = UnrealSharpNamespace + ".Interop";
     public static readonly string AttributeNamespace = UnrealSharpNamespace + ".Attributes";
+    public static readonly string CoreUObjectNamespace = UnrealSharpNamespace + ".CoreUObject";
+    
     public static readonly string UnrealSharpObject = "UnrealSharpObject";
     public static readonly string FPropertyCallbacks = "FPropertyExporter";
     public static readonly string UClassCallbacks = "UClassExporter";
@@ -34,6 +35,9 @@ public static class WeaverHelper
     public static readonly string UClassAttribute = "UClassAttribute";
     public static readonly string UInterfaceAttribute = "UInterfaceAttribute";
     
+    public static readonly string GeneratedTypeAttribute = "GeneratedTypeAttribute";
+    public static readonly string BlittableTypeAttribute = "BlittableTypeAttribute";
+    
     public static AssemblyDefinition UserAssembly;
     public static AssemblyDefinition BindingsAssembly;
     public static MethodReference NativeObjectGetter;
@@ -42,6 +46,7 @@ public static class WeaverHelper
     public static FieldReference IntPtrZero;
     public static MethodReference IntPtrEqualsOperator;
     public static TypeReference UnrealSharpObjectType;
+    public static TypeDefinition IInterfaceType;
     public static MethodReference CheckObjectForValidity;
     public static MethodReference GetNativeFunctionFromInstanceAndNameMethod;
     public static TypeReference Uint16TypeRef;
@@ -60,11 +65,25 @@ public static class WeaverHelper
     public static MethodReference GetSignatureFunction;
     public static MethodReference InitializeStructMethod;
     
+    public static MethodReference BlittableTypeConstructor;
+    
     private static readonly MethodAttributes MethodAttributes = MethodAttributes.Public | MethodAttributes.Static;
     
     public static void Initialize(AssemblyDefinition bindingsAssembly)
     {
         BindingsAssembly = bindingsAssembly;
+    }
+    
+    public static void ForEachAssembly(Func<AssemblyDefinition, bool> action)
+    {
+        List<AssemblyDefinition> assemblies = [BindingsAssembly, UserAssembly];
+        foreach (var assembly in assemblies)
+        {
+            if (!action(assembly))
+            {
+                return;
+            }
+        }
     }
 
     public static void ImportCommonTypes(AssemblyDefinition userAssembly)
@@ -82,11 +101,11 @@ public static class WeaverHelper
         IntPtrZero = FindFieldInType(IntPtrType, "Zero");
         IntPtrEqualsOperator = FindMethod(IntPtrType, "op_Equality")!;
 
-        UnrealSharpObjectType = FindTypeInAssembly(BindingsAssembly, UnrealSharpObject, UnrealSharpNamespace);
+        UnrealSharpObjectType = FindTypeInAssembly(BindingsAssembly, UnrealSharpObject, UnrealSharpNamespace)!;
+        IInterfaceType = FindTypeInAssembly(BindingsAssembly, "IInterface", CoreUObjectNamespace)!.Resolve();
         
         TypeDefinition unrealSharpObjectType = UnrealSharpObjectType.Resolve();
         NativeObjectGetter = FindMethod(unrealSharpObjectType, "get_NativeObject")!;
-        CheckObjectForValidity = FindMethod(unrealSharpObjectType, "CheckObjectForValidity")!;
 
         GetNativeFunctionFromInstanceAndNameMethod = FindExporterMethod(UClassCallbacks, "CallGetNativeFunctionFromInstanceAndName");
         GetNativeStructFromNameMethod = FindExporterMethod(CoreUObjectCallbacks, "CallGetNativeStructFromName");
@@ -100,12 +119,21 @@ public static class WeaverHelper
         InvokeNativeFunctionMethod = FindExporterMethod(UObjectCallbacks, "CallInvokeNativeFunction");
         GetSignatureFunction = FindExporterMethod(MulticastDelegatePropertyCallbacks, "CallGetSignatureFunction");
         InitializeStructMethod = FindExporterMethod(UStructCallbacks, "CallInitializeStruct");
+        
+        TypeReference? blittableType = FindTypeInAssembly(BindingsAssembly, BlittableTypeAttribute, AttributeNamespace);
+        
+        if (blittableType == null)
+        {
+            throw new Exception("BlittableTypeAttribute not found in " + BindingsAssembly.Name);
+        }
+        
+        BlittableTypeConstructor = FindMethod(blittableType.Resolve(), ".ctor");
     }
     
-    public static TypeReference FindGenericTypeInAssembly(AssemblyDefinition assembly, string typeNamespace, string typeName, TypeReference[] typeParameters)
+    public static TypeReference? FindGenericTypeInAssembly(AssemblyDefinition assembly, string typeNamespace, string typeName, TypeReference[] typeParameters, bool bThrowOnException = true)
     {
-        TypeReference? typeRef = FindTypeInAssembly(assembly, typeName, typeNamespace);
-        return UserAssembly.MainModule.ImportReference(typeRef.Resolve().MakeGenericInstanceType(typeParameters));
+        TypeReference? typeRef = FindTypeInAssembly(assembly, typeName, typeNamespace, bThrowOnException);
+        return typeRef == null ? null : UserAssembly.MainModule.ImportReference(typeRef.Resolve().MakeGenericInstanceType(typeParameters));
     }
 
     public static TypeReference? FindTypeInAssembly(AssemblyDefinition assembly, string typeName, string typeNamespace = "", bool throwOnException = true)
@@ -518,16 +546,16 @@ public static class WeaverHelper
 
                 if (typeDef.IsEnum)
                 {
-                    CustomAttribute? enumAttribute = FindAttributeByType(typeDef.CustomAttributes, UnrealSharpNamespace + ".Attributes", "UEnumAttribute");
+                    CustomAttribute? enumAttribute = GetUEnum(typeDef);
                 
                     if (enumAttribute == null)
                     {
-                        throw new InvalidPropertyException(propertyName, sequencePoint, "Enum properties must use an unreal enum: " + typeRef.FullName);
+                        throw new InvalidPropertyException(propertyName, sequencePoint, "Enum properties must use an UEnum enum: " + typeRef.FullName);
                     }
                 
-                    if (typeDef.GetEnumUnderlyingType().FullName != "System.Byte")
+                    if (typeDef.GetEnumUnderlyingType().Resolve() != ByteTypeRef.Resolve())
                     {
-                        throw new InvalidPropertyException(propertyName, sequencePoint, "Enum properties must have an underlying type of System.Byte: " + typeRef.FullName);
+                        throw new InvalidPropertyException(propertyName, sequencePoint, "Enum's exposed to Blueprints must have an underlying type of System.Byte: " + typeRef.FullName);
                     }
 
                     return new NativeDataEnumType(typeDef, arrayDim);
@@ -584,15 +612,7 @@ public static class WeaverHelper
                     return new NativeDataCoreStructType(typeDef, arrayDim);
                 }
                 
-                bool isBlittable = false;
-                var blittableAttrib = FindAttributeField(structAttribute, "IsBlittable");
-                        
-                if (blittableAttrib.HasValue)
-                {
-                    isBlittable = (bool) blittableAttrib.Value.Value;
-                }
-                        
-                return isBlittable ? new NativeDataBlittableStructType(typeDef, arrayDim) : new NativeDataStructType(typeDef, GetMarshallerClassName(typeDef), arrayDim);
+                return GetBlittableType(typeDef) != null ? new NativeDataBlittableStructType(typeDef, arrayDim) : new NativeDataStructType(typeDef, GetMarshallerClassName(typeDef), arrayDim);
         }
     }
     
@@ -603,7 +623,7 @@ public static class WeaverHelper
     
     public static CustomAttribute?[] FindMetaDataAttributes(IEnumerable<CustomAttribute> customAttributes)
     {
-        return FindAttributesByType(customAttributes, UnrealSharpNamespace, "UMetaDataAttribute");
+        return FindAttributesByType(customAttributes, AttributeNamespace, UMetaDataAttribute);
     }
 
     public static CustomAttributeArgument? FindAttributeField(CustomAttribute attribute, string fieldName)
@@ -833,6 +853,11 @@ public static class WeaverHelper
         return FindAttribute(attributes, UPropertyAttribute);
     }
     
+    public static CustomAttribute? GetBlittableType(TypeDefinition type)
+    {
+        return FindAttribute(type.CustomAttributes, BlittableTypeAttribute);
+    }
+    
     public static CustomAttribute? GetUProperty(IMemberDefinition property)
     {
         return FindAttribute(property.CustomAttributes, UPropertyAttribute);
@@ -876,6 +901,36 @@ public static class WeaverHelper
     public static bool IsUClass(TypeDefinition typeDefinition)
     {
         return GetUClass(typeDefinition) != null;
+    }
+    
+    public static bool IsGenerated(TypeDefinition typeDefinition)
+    {
+        return FindAttribute(typeDefinition.CustomAttributes, GeneratedTypeAttribute) != null;
+    }
+    
+    public static bool IsValidBaseForUObject(TypeDefinition typeDefinition)
+    {
+        if (!WeaverHelper.IsUClass(typeDefinition))
+        {
+            return false;
+        }
+        
+        while (typeDefinition != null)
+        {
+            if (typeDefinition.BaseType == null)
+            {
+                return false;
+            }
+            
+            if (typeDefinition.FullName == "UnrealSharp.CoreUObject.Object")
+            {
+                return true;
+            }
+
+            typeDefinition = typeDefinition.BaseType.Resolve();
+        }
+        
+        return false;
     }
     
     public static bool IsUEnum(TypeDefinition typeDefinition)
