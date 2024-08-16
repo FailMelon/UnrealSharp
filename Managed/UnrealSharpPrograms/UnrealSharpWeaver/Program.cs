@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Mono.Cecil;
 using Mono.Cecil.Pdb;
 using UnrealSharpWeaver.MetaData;
@@ -73,11 +73,22 @@ public static class Program
             }
 
             string weaverOutputPath = Path.Combine(outputDirectory, Path.GetFileName(userAssemblyPath));
-            
+
+            DefaultAssemblyResolver resolver = new DefaultAssemblyResolver();
+
+            foreach (var assemblyPath in WeaverOptions.AssemblyPaths)
+            {
+                if (Directory.Exists(assemblyPath))
+                {
+                    resolver.AddSearchDirectory(assemblyPath);
+                }
+            }
+
             var readerParams = new ReaderParameters
             {
                 ReadSymbols = true,
                 SymbolReaderProvider = new PdbReaderProvider(),
+                AssemblyResolver = resolver
             };
 
             AssemblyDefinition userAssembly = AssemblyDefinition.ReadAssembly(userAssemblyPath, readerParams);
@@ -146,29 +157,40 @@ public static class Program
                 {
                     foreach (var type in module.Types)
                     {
+                        if (WeaverHelper.IsGenerated(type))
+                        {
+                            continue;
+                        }
+
+                        void RegisterType(List<TypeDefinition> typeDefinitions, TypeDefinition typeDefinition)
+                        {
+                            typeDefinitions.Add(typeDefinition);
+                            WeaverHelper.AddGeneratedTypeAttribute(typeDefinition);
+                        }
+                        
                         if (WeaverHelper.IsUClass(type))
                         {
-                            classes.Add(type);
+                            RegisterType(classes, type);
                         }
                         else if (WeaverHelper.IsUEnum(type))
                         {
-                            enums.Add(type);
+                            RegisterType(enums, type);
                         }
                         else if (WeaverHelper.IsUStruct(type))
                         {
-                            structs.Add(type);
+                            RegisterType(structs, type);
                         }
                         else if (WeaverHelper.IsUInterface(type))
                         {
-                            interfaces.Add(type);
+                            RegisterType(interfaces, type);
                         }
                         else if (type.BaseType != null && type.BaseType.Name.Contains("MulticastDelegate"))
                         {
-                            multicastDelegates.Add(type);
+                            RegisterType(multicastDelegates, type);
                         }
                         else if (type.BaseType != null && type.BaseType.Name.Contains("Delegate"))
                         {
-                            delegates.Add(type);
+                            RegisterType(delegates, type);
                         }
                     }
                 }
@@ -179,11 +201,11 @@ public static class Program
                 throw;
             }
             
-            UnrealDelegateProcessor.ProcessMulticastDelegates(multicastDelegates);
-            UnrealDelegateProcessor.ProcessSingleDelegates(delegates);
             UnrealEnumProcessor.ProcessEnums(enums, metadata);
             UnrealInterfaceProcessor.ProcessInterfaces(interfaces, metadata);
             UnrealStructProcessor.ProcessStructs(structs, metadata, userAssembly);
+            UnrealDelegateProcessor.ProcessMulticastDelegates(multicastDelegates);
+            UnrealDelegateProcessor.ProcessSingleDelegates(delegates);
             UnrealClassProcessor.ProcessClasses(classes, metadata);
         }
         catch (Exception ex)
