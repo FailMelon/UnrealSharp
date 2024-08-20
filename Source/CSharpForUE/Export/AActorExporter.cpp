@@ -5,6 +5,7 @@
 void UAActorExporter::ExportFunctions(FRegisterExportedFunction RegisterExportedFunction)
 {
 	EXPORT_FUNCTION(GetRootComponent);
+	EXPORT_FUNCTION(FinishSpawning);
 }
 
 void* UAActorExporter::GetRootComponent(AActor* Actor)
@@ -15,4 +16,9 @@ void* UAActorExporter::GetRootComponent(AActor* Actor)
 	}
 	
 	return FCSManager::Get().FindManagedObject(Actor->GetRootComponent()).GetIntPtr();
+}
+
+void UAActorExporter::FinishSpawning(AActor* Actor)
+{
+	Actor->FinishSpawning(Actor->GetTransform(), true);
 }
