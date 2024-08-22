@@ -18,5 +18,5 @@ public:
 private:
 	
 	static void* GetRootComponent(AActor* Actor);
-	
+	static void FinishSpawning(AActor* Actor);
 };

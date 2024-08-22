@@ -25,5 +25,7 @@ private:
 	static void InvokeNativeStaticFunction(const UClass* NativeClass, UFunction* NativeFunction, uint8* Params);
 	static bool NativeIsValid(UObject* Object);
 	static void* GetWorld(UObject* Object);
-	
+	static void* LoadObjectFromStream(const UTF16CHAR* FilePath);
+	static void UnloadObject(const UTF16CHAR* FilePath);
+	static uint32 GetUniqueID(UObject* Object);
 };

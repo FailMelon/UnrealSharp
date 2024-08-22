@@ -1,5 +1,6 @@
-﻿using UnrealSharp.CoreUObject;
+using UnrealSharp.CoreUObject;
 using UnrealSharp.EnhancedInput;
+using UnrealSharp.Interop;
 
 namespace UnrealSharp.Engine;
 
@@ -103,5 +104,10 @@ public partial class AActor
         }
         
         return GetComponentByClass(@class.Value) as T;
+    }
+
+    public void FinishSpawning()
+    {
+        AActorExporter.CallFinishSpawning(NativeObject);
     }
 }

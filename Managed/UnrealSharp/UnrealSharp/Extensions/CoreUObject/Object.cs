@@ -22,6 +22,11 @@ public partial class UObject
     public bool IsDestroyed => NativeObject == IntPtr.Zero || !UObjectExporter.CallNativeIsValid(NativeObject);
 
     /// <summary>
+    /// The unique ID of the object... These are reused so it is only unique while the object is alive.
+    /// </summary>
+    public int UniqueID => UObjectExporter.CallGetUniqueID(NativeObject);
+
+    /// <summary>
     /// The world that the object belongs to.
     /// </summary>
     public UWorld World
@@ -292,5 +297,45 @@ public partial class UObject
             IntPtr handle = UWidgetBlueprintLibraryExporter.CreateWidget(NativeObject, widgetClass.NativeClass, owningPlayerPtr);
             return GcHandleUtilities.GetObjectFromHandlePtr<T>(handle);
         }
+    }
+
+    public static T? LoadObjectFromStream<T>(string filePath) where T : UObject
+    {
+        unsafe
+        {
+            fixed (char* filePathPtr = filePath)
+            {
+                var handle = UObjectExporter.LoadObjectFromStream((IntPtr)filePathPtr);
+                return GcHandleUtilities.GetObjectFromHandlePtr<T>(handle);
+            }
+        }
+    }
+
+    public static object? LoadObjectFromStream(string filePath)
+    {
+        unsafe
+        {
+            fixed (char* filePathPtr = filePath)
+            {
+                var handle = UObjectExporter.LoadObjectFromStream((IntPtr)filePathPtr);
+                return GcHandleUtilities.GetObjectFromHandlePtr(handle);
+            }
+        }
+    }
+
+    public static void UnloadObject(string filePath)
+    {
+        unsafe
+        {
+            fixed (char* filePathPtr = filePath)
+            {
+                UObjectExporter.UnloadObject((IntPtr)filePathPtr);
+            }
+        }
+    }
+
+    public static implicit operator bool(UObject Object)
+    {
+        return Object != null && UObjectExporter.CallNativeIsValid(Object.NativeObject);
     }
 }

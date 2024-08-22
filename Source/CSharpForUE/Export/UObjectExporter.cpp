@@ -1,5 +1,7 @@
 ﻿#include "UObjectExporter.h"
 #include "CSharpForUE/CSManager.h"
+#include "Engine/StreamableManager.h"
+#include <Engine/AssetManager.h>
 
 void UUObjectExporter::ExportFunctions(FRegisterExportedFunction RegisterExportedFunction)
 {
@@ -10,6 +12,9 @@ void UUObjectExporter::ExportFunctions(FRegisterExportedFunction RegisterExporte
 	EXPORT_FUNCTION(InvokeNativeFunction);
 	EXPORT_FUNCTION(NativeIsValid)
 	EXPORT_FUNCTION(GetWorld);
+	EXPORT_FUNCTION(LoadObjectFromStream);
+	EXPORT_FUNCTION(UnloadObject);
+	EXPORT_FUNCTION(GetUniqueID);
 }
 
 void* UUObjectExporter::CreateNewObject(UObject* Outer, UClass* Class, UObject* Template)
@@ -119,4 +124,38 @@ void* UUObjectExporter::GetWorld(UObject* Object)
 
 	UWorld* World = Object->GetWorld();
 	return FCSManager::Get().FindManagedObject(World).GetIntPtr();
+}
+
+
+void* UUObjectExporter::LoadObjectFromStream(const UTF16CHAR* FilePath)
+{
+	// Get the streamable manager
+	FStreamableManager& StreamableManager = UAssetManager::GetStreamableManager();
+
+	// Path reference to the asset
+	const FStringAssetReference AssetRef = FString(FilePath);
+
+	// Load the asset
+	FSoftObjectPath AssetPath(AssetRef);
+	UObject* LoadedAsset = StreamableManager.LoadSynchronous<UObject>(AssetPath);
+
+	return FCSManager::Get().FindManagedObject(LoadedAsset).GetIntPtr();
+}
+
+void UUObjectExporter::UnloadObject(const UTF16CHAR* FilePath)
+{
+	// Path reference to the asset
+	const FStringAssetReference AssetRef = FString(FilePath);
+
+	// Get the streamable manager
+	FStreamableManager& StreamableManager = UAssetManager::GetStreamableManager();
+
+	// Unload the asset
+	FSoftObjectPath AssetPath(AssetRef);
+	StreamableManager.Unload(AssetPath);
+}
+
+uint32 UUObjectExporter::GetUniqueID(UObject* Object)
+{
+	return Object->GetUniqueID();
 }
