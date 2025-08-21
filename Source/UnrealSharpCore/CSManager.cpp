@@ -164,7 +164,9 @@ void UCSManager::Initialize()
 	FCSProcHelper::GetAllProjectPaths(ProjectPaths);
 
 	// Compile the C# project for any changes done outside the editor.
-	if (!ProjectPaths.IsEmpty() && !FApp::IsUnattended() && !FCSProcHelper::InvokeUnrealSharpBuildTool(BUILD_ACTION_BUILD_WEAVE))
+	TMap<FString, FString> Arguments;
+	Arguments.Add("UseRoslyn", Arguments.Add("UseRoslyn", GetDefault<UCSUnrealSharpSettings>()->bUseRoslyn ? "true" : "false"));
+	if (!ProjectPaths.IsEmpty() && !FApp::IsUnattended() && !FCSProcHelper::InvokeUnrealSharpBuildTool(BUILD_ACTION_BUILD_WEAVE, Arguments))
 	{
 		Initialize();
 		return;

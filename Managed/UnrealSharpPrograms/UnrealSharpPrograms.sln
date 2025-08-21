@@ -1,8 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36202.13 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnrealSharpWeaver", "UnrealSharpWeaver\UnrealSharpWeaver.csproj", "{2C321548-EB15-40CA-B715-83E874894C0E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnrealSharpBuildTool", "UnrealSharpBuildTool\UnrealSharpBuildTool.csproj", "{65EDC071-E369-45AD-B031-A37E26AC32AF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnrealSharpRoslynWeaver", "UnrealSharpRoslynWeaver\UnrealSharpRoslynWeaver.csproj", "{EB8F65AA-FFF3-4BF5-A663-A19DB0F45473}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -18,5 +23,15 @@ Global
 		{65EDC071-E369-45AD-B031-A37E26AC32AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{65EDC071-E369-45AD-B031-A37E26AC32AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{65EDC071-E369-45AD-B031-A37E26AC32AF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EB8F65AA-FFF3-4BF5-A663-A19DB0F45473}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB8F65AA-FFF3-4BF5-A663-A19DB0F45473}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EB8F65AA-FFF3-4BF5-A663-A19DB0F45473}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EB8F65AA-FFF3-4BF5-A663-A19DB0F45473}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {FE91E7C2-39F5-485F-B397-EA5AF086239B}
 	EndGlobalSection
 EndGlobal

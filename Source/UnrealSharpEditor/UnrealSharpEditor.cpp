@@ -36,6 +36,7 @@
 #include "TypeGenerator/CSScriptStruct.h"
 #include "UnrealSharpUtilities/UnrealSharpUtils.h"
 #include "Utils/CSClassUtilities.h"
+#include <CSUnrealSharpSettings.h>
 
 #define LOCTEXT_NAMESPACE "FUnrealSharpEditorModule"
 
@@ -580,6 +581,7 @@ void FUnrealSharpEditorModule::PackageProject()
 	TMap<FString, FString> Arguments;
 	Arguments.Add("ArchiveDirectory", FCSUnrealSharpUtils::MakeQuotedPath(ArchiveDirectory));
 	Arguments.Add("BuildConfig", "Release");
+	Arguments.Add("UseRoslyn", Arguments.Add("UseRoslyn", GetDefault<UCSUnrealSharpSettings>()->bUseRoslyn ? "true" : "false"));
 	FCSProcHelper::InvokeUnrealSharpBuildTool(BUILD_ACTION_PACKAGE_PROJECT, Arguments);
 
 	FNotificationInfo Info(

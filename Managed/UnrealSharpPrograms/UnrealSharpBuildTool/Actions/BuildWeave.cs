@@ -4,9 +4,19 @@ public class BuildWeave : BuildToolAction
 {
     public override bool RunAction()
     {
-        BuildSolution buildSolution = new BuildUserSolution();
-        WeaveProject weaveProject = new WeaveProject();
-        return buildSolution.RunAction() && weaveProject.RunAction() && AddLaunchSettings();
+        bool.TryParse(Program.TryGetArgument("UseRoslyn"), out bool useRoslyn);
+        if (useRoslyn)
+        {
+            RoslynWeaverProject weaveProject = new RoslynWeaverProject();
+            return weaveProject.RunAction() && AddLaunchSettings();
+        }
+        else
+        {
+            BuildSolution buildSolution = new BuildUserSolution();
+            WeaveProject weaveProject = new WeaveProject();
+
+            return buildSolution.RunAction() && weaveProject.RunAction() && AddLaunchSettings();
+        }
     }
     
     bool AddLaunchSettings()

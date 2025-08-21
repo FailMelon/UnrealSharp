@@ -149,6 +149,11 @@ public static class Program
         return Path.Combine(GetManagedBinariesDirectory(), "UnrealSharpWeaver.dll");
     }
 
+    public static string GetRoslynWeaver()
+    {
+        return Path.Combine(GetManagedBinariesDirectory(), "UnrealSharpRoslynWeaver.dll");
+    }
+
     public static string GetManagedBinariesDirectory()
     {
         return Path.Combine(BuildToolOptions.PluginDirectory, "Binaries", "Managed");

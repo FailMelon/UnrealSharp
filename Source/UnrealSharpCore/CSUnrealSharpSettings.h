@@ -20,6 +20,10 @@ public:
 	// End of UObject interface
 #endif
 	
+	// If we should use the new roslyn weaver or the traditional IL weaver.
+	UPROPERTY(EditDefaultsOnly, config, Category = "UnrealSharp | Build")
+	bool bUseRoslyn = false;
+
 	// Should we exit PIE when an exception is thrown in C#?
 	UPROPERTY(EditDefaultsOnly, config, Category = "UnrealSharp | Debugging")
 	bool bCrashOnException = true;
