@@ -238,9 +238,10 @@ public abstract class PropertyTranslator
     // Example: "0.0f" for a float property
     public abstract string ConvertCPPDefaultValue(string defaultValue, UhtFunction function, UhtProperty parameter);
 
-    public void ExportConstructor()
+    public void ExportConstructorParameter(GeneratorStringBuilder builder, UhtProperty property, string propertyName)
     {
-
+        string managedType = GetManagedType(property);
+        builder.Append($"{managedType} {propertyName}");
     }
 
     public void ExportCustomProperty(GeneratorStringBuilder builder, GetterSetterPair getterSetterPair, 
