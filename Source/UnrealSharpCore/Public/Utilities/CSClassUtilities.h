@@ -17,8 +17,7 @@ public:
 		return Class->GetClass() == UCSClass::StaticClass();
 #endif
 	}
-	
-	static bool IsManagedType(const UClass* Class);
+
 	static bool IsSkeletonType(const UClass* Class) { return Class->GetClass() == UCSSkeletonClass::StaticClass(); }
 	static bool IsNativeClass(UClass* Class){ return Class->GetClass() == UClass::StaticClass(); }
 
@@ -72,26 +71,38 @@ public:
 		return Class;
 	}
 
-	static UClass* GetFirstNonBlueprintClass(UClass* Class)
+	static UClass* GetFirstNonBlueprintClass(UClass* InClass)
 	{
-		while (!IsNativeClass(Class) && !IsManagedClass(Class))
+		UClass* CurrentClass = InClass;
+		
+		while (CurrentClass)
 		{
-			Class = Class->GetSuperClass();
+			UPackage* ClassPackage = CurrentClass->GetPackage();
+			
+			if (!IsBlueprintField(ClassPackage))
+			{
+				break;
+			}
+
+			CurrentClass = CurrentClass->GetSuperClass();
 		}
+		
+		return CurrentClass;
+	}
 	
-		return Class;
+	static bool IsBlueprintField(UPackage* FieldPackage)
+	{
+		return FieldPackage && !FieldPackage->HasAnyPackageFlags(PKG_CompiledIn);
+	}
+	
+	static bool IsBlueprintObject(const UObject* Object)
+	{
+		return IsBlueprintField(Object->GetPackage());
 	}
 
 	static bool HasImplementedFunction(const UClass* Class, const FName& FunctionName)
 	{
-		auto ImplementedInBlueprint = [](const UFunction* Func) -> bool
-		{
-			return IsValid(Func) && Func->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass());
-		};
-
 		UFunction* Function = Class->FindFunctionByName(FunctionName);
-		bool ImplementsFunction = ImplementedInBlueprint(Function);
-		
-		return ImplementsFunction;
+		return IsValid(Function) && Function->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass());
 	}
 };

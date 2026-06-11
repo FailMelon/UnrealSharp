@@ -21,19 +21,13 @@ public static class ClassExporter
         List<UhtFunction> exportedOverrides = new();
         Dictionary<string, GetterSetterPair> exportedGetterSetters = new();
         Dictionary<string, GetterSetterPair> getSetOverrides = new();
-        
-        ScriptGeneratorUtilities.GetExportedFunctions(classObj, exportedFunctions, 
-            exportedOverrides, 
-            exportedGetterSetters, getSetOverrides);
+        classObj.GetExportedFunctions(exportedFunctions, exportedOverrides, exportedGetterSetters, getSetOverrides);
         
         List<UhtProperty> exportedProperties = new List<UhtProperty>();
         Dictionary<UhtProperty, GetterSetterPair> getSetBackedProperties = new();
-        ScriptGeneratorUtilities.GetExportedProperties(classObj, exportedProperties, getSetBackedProperties);
+        classObj.GetExportedProperties(exportedProperties, getSetBackedProperties);
         
-        List<UhtClass> interfaces = classObj.GetInterfaces();
-        
-        bool nullableEnabled = classObj.HasMetadata(UhtTypeUtilities.NullableEnable);
-        stringBuilder.StartGlueFile(classObj, nullableEnabled: nullableEnabled);
+        stringBuilder.StartGlueFile(classObj);
         stringBuilder.AppendTooltip(classObj);
         
         AttributeBuilder attributeBuilder = new AttributeBuilder(classObj);
@@ -56,7 +50,7 @@ public static class ClassExporter
             superClassName = "UnrealSharp.Core.UnrealSharpObject";
         }
         
-        stringBuilder.DeclareType(classObj, "class", classObj.GetStructName(), superClassName, nativeInterfaces: interfaces);
+        stringBuilder.DeclareType(classObj, "class", classObj.GetStructName(), superClassName, nativeInterfaces: classObj.GetInterfaces());
         stringBuilder.AppendNativeTypePtr(classObj);
         
         // For manual exports we just want to generate attributes
@@ -156,10 +150,10 @@ public static class ClassExporter
         }
     }
     
-    static void ExportClassFunctions(UhtClass owner, GeneratorStringBuilder builder, List<UhtFunction> exportedFunctions,
-                                     HashSet<string> exportedFunctionNames)
+    static void ExportClassFunctions(UhtClass owner, GeneratorStringBuilder builder, List<UhtFunction> exportedFunctions, HashSet<string> exportedFunctionNames)
     {
         bool isBlueprintFunctionLibrary = owner.IsChildOf(GeneratorStatics.BlueprintFunctionLibrary);
+        
         foreach (UhtFunction function in exportedFunctions)
         {
             if (function.HasAllFlags(EFunctionFlags.Static) && isBlueprintFunctionLibrary)

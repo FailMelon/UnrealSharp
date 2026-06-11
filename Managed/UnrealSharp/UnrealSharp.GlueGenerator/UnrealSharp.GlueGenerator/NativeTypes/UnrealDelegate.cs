@@ -79,7 +79,13 @@ public record UnrealDelegate : UnrealType
             parameters = string.Join(", ", _delegateSignature.Properties.Select(x => x.GetParameterCall()));
         }
         
-        builder.BeginType(_delegateSignature, SourceGenUtilities.ClassKeyword, null, nativeTypePtrName: _delegateSignature.FunctionNativePtr, overrideTypeName: delegateWrapperClassName,  $"{baseTypeName}<{_delegateSignature.SourceName}>");
+        TypeDeclarationBuilder typeDeclarationBuilder = TypeDeclarationBuilder.FromUnrealType(this, SourceGenUtilities.ClassKeyword)
+            .WithNativePtr(_delegateSignature.FunctionNativePtr)
+            .WithEngineName(delegateWrapperClassName.Substring(1))
+            .WithDeclarationName(delegateWrapperClassName)
+            .Extends($"{baseTypeName}<{_delegateSignature.SourceName}>");
+
+        typeDeclarationBuilder.Build(builder);
 
         builder.BeginTypeStaticConstructor(delegateWrapperClassName);
         _delegateSignature.ExportBackingVariablesToStaticConstructor(builder, _delegateSignature.FunctionNativePtr);
@@ -128,7 +134,7 @@ public record UnrealDelegate : UnrealType
 
     public override void PopulateJsonObject(JsonWriter jsonWriter)
     {
-        _delegateSignature.PopulateJsonObject(jsonWriter);
         base.PopulateJsonObject(jsonWriter);
+        _delegateSignature.PopulateJsonObject(jsonWriter);
     }
 }

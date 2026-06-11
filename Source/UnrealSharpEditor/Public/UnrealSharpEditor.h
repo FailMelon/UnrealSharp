@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "CSEditorCommands.h"
 #include "Modules/ModuleManager.h"
 #include "Containers/Ticker.h"
 
@@ -58,9 +59,7 @@ public:
     void InitializeManagedEditorCallbacks(FCSManagedEditorCallbacks Callbacks);
     FCSManagedEditorCallbacks& GetManagedEditorCallbacks() { return ManagedUnrealSharpEditorCallbacks; }
 
-    UNREALSHARPEDITOR_API void AddNewProject(const FString& ModuleName, const FString& ProjectParentFolder, const FString& ProjectRoot, TMap<FString, FString>
-                                             Arguments = {}, bool bOpenProject = true);
-    
+    UNREALSHARPEDITOR_API void AddNewProject(const FString& ModuleName, const FString& ProjectParentFolder, const FString& ProjectRoot, TMap<FString, FString> Arguments = {}, bool bOpenProject = true);
     UNREALSHARPEDITOR_API FCSOnBuildingToolbar& OnBuildingToolbarEvent() { return OnBuildingToolbar; }
 
 private:
@@ -68,8 +67,6 @@ private:
     static void SuggestProjectSetup();
 
     static FString SelectArchiveDirectory();
-
-    static void RunGame(FString ExecutablePath);
 
     static void OnCreateNewProject();
     static void OnCompileManagedCode();
@@ -89,6 +86,11 @@ private:
     static void PackageProject();
 
     TSharedRef<SWidget> GenerateUnrealSharpToolbar() const;
+    
+    static void AppendProjectMenu(const FCSEditorCommands& CSCommands, FMenuBuilder& MenuBuilder);
+    static void AppendPackageMenu(const FCSEditorCommands& CSCommands, FMenuBuilder& MenuBuilder);
+    static void AppendBuildMenu(const FCSEditorCommands& CSCommands, FMenuBuilder& MenuBuilder);
+    static void AppendPluginMenu(const FCSEditorCommands& CSCommands, FMenuBuilder& MenuBuilder);
 
     static void OpenNewProjectDialog();
 

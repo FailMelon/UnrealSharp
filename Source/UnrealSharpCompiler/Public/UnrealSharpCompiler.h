@@ -27,12 +27,14 @@ private:
 
     void OnReflectionDataChanged(TSharedPtr<FCSManagedTypeDefinition> ManagedTypeDefinition);
     
-    void OnManagedAssemblyLoaded(const UCSManagedAssembly* Assembly);
+    void OnManagedAssemblyLoaded(UCSManagedAssembly* Assembly);
+    static bool IsAssemblyHotReloadable(const UCSManagedAssembly* Assembly);
     void RecompileAndReinstanceBlueprints();
 
     void AddManagedReferences(FCSManagedReferencesCollection& Collection);
 
-    static void InvalidateReferences(UBlueprint* Blueprint);
+    static void RefreshDependentLoaders(UBlueprint* Blueprint);
+    static void RefreshInstanceTickSettings(const UBlueprint* Blueprint);
     
     FCSBlueprintCompiler BlueprintCompiler;
     

@@ -1,6 +1,9 @@
 #include "ReflectionData/CSFunctionReflectionData.h"
 
-bool FCSFunctionReflectionData::Serialize(TSharedPtr<FJsonObject> JsonObject)
+#include "Json/CSJsonMacros.h"
+#include "Json/CSJsonUtilities.h"
+
+bool FCSFunctionReflectionData::Serialize(FConstObject JsonObject)
 {
 	START_JSON_SERIALIZE
 		

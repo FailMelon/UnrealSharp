@@ -4,12 +4,14 @@ public class UnrealSharpUtilities : ModuleRules
 {
     public UnrealSharpUtilities(ReadOnlyTargetRules Target) : base(Target)
     {
-        PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+        PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
         PublicDependencyModuleNames.AddRange(
             new string[]
             {
-                "Core",
+                "Core", 
+                "Json", 
+                "Projects",
             }
         );
 
@@ -19,8 +21,23 @@ public class UnrealSharpUtilities : ModuleRules
                 "CoreUObject",
                 "Engine",
                 "Slate",
-                "SlateCore"
+                "SlateCore",
+                "DeveloperSettings",
+                "Projects", 
             }
         );
+
+        if (Target.bBuildEditor)
+        {
+            PublicDependencyModuleNames.AddRange(
+                new string[]
+                {
+                    "UATHelper",
+                    "UnrealEd",
+                }
+            );
+        }
+        
+        PublicDefinitions.Add("ForceAsEngineGlue=1");
     }
 }

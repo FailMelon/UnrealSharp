@@ -1,7 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+    <Import Project="..\..\..\UnrealSharp.AOT.props" Condition="Exists('..\..\..\UnrealSharp.AOT.props')" />
+    
     <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -27,8 +29,5 @@
         <PackageReference Include="Microsoft.Build.Locator" />
     </ItemGroup>
 
-    <ItemGroup>
-        <Compile Include="..\..\Shared\DotNetUtilities.cs" Link="..\..\Shared\DotNetUtilities.cs" />
-    </ItemGroup>
     
 </Project>

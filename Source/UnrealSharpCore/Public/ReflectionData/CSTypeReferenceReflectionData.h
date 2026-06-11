@@ -17,7 +17,7 @@ struct FCSMetaDataEntry : FCSReflectionDataBase
 	FCSMetaDataEntry() {}
 
 	// FCSReflectionDataBase interface
-	virtual bool Serialize(TSharedPtr<FJsonObject> JsonObject) override;
+	virtual bool Serialize(FConstObject JsonObject) override;
 	// End of FCSReflectionDataBase interface
 
 	FString Key;
@@ -26,22 +26,24 @@ struct FCSMetaDataEntry : FCSReflectionDataBase
 
 struct FCSTypeReferenceReflectionData : FCSReflectionDataBase
 {
-	void SerializeFromJsonString(const char* RawJsonString);
+	void SerializeFromJsonString(TCHAR* RawJsonString);
 	
 	// FCSReflectionDataBase interface
-	virtual bool Serialize(TSharedPtr<FJsonObject> JsonObject) override;
+	virtual bool Serialize(FConstObject JsonObject) override;
 	// End of FCSReflectionDataBase interface
 	
 	bool IsValid() const { return FieldName.IsValid() && AssemblyName != NAME_None; }
 
-	UCSManagedAssembly* GetOwningAssemblyChecked() const;
+	UCSManagedAssembly* GetDefinitionFieldAssembly() const;
 	
-	UClass* GetAsClass() const;
-	UScriptStruct* GetAsStruct() const;
-	UEnum* GetAsEnum() const;
-	UClass* GetAsInterface() const;
-	UDelegateFunction* GetAsDelegate() const;
-	UPackage* GetAsPackage() const;
+	template<typename T>
+	T* ResolveUField() const
+	{
+		return CastChecked<T>(ResolveUField());
+	}
+	
+	UField* ResolveUField() const;
+	UPackage* GetDefinitionFieldPackage() const;
 
 	bool HasMetaData(const FString& Key) const
 	{

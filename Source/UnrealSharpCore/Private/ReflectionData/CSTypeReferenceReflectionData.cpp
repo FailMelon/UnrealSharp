@@ -1,9 +1,9 @@
 ﻿#include "ReflectionData/CSTypeReferenceReflectionData.h"
-#include "ReflectionData/CSReflectionDataBase.h"
 #include "CSManager.h"
+#include "Json/CSJsonMacros.h"
+#include "Json/CSJsonUtilities.h"
 
-
-bool FCSMetaDataEntry::Serialize(TSharedPtr<FJsonObject> JsonObject)
+bool FCSMetaDataEntry::Serialize(FConstObject JsonObject)
 {
 	START_JSON_SERIALIZE
 	
@@ -13,34 +13,26 @@ bool FCSMetaDataEntry::Serialize(TSharedPtr<FJsonObject> JsonObject)
 	END_JSON_SERIALIZE
 }
 
-void FCSTypeReferenceReflectionData::SerializeFromJsonString(const char* RawJsonString)
+void FCSTypeReferenceReflectionData::SerializeFromJsonString(TCHAR* RawJsonString)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FCSTypeReferenceReflectionData::StartSerializeFromJson);
 	
-	if (!RawReflectionData.IsEmpty())
-	{
-		UE_LOGFMT(LogUnrealSharp, Fatal, "Attempted to re-serialize reflection data for type {0}", *FieldName.GetFullName().ToString());
-	}
-	
 	RawReflectionData = RawJsonString;
 	
-	TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(RawReflectionData);
-		
-	TSharedPtr<FJsonObject> JsonReflectionData;
-	if (!FJsonSerializer::Deserialize(JsonReader, JsonReflectionData))
+	FDocument ParsedDocument;
+	if (!ParseJsonString(RawJsonString, ParsedDocument))
 	{
-		UE_LOGFMT(LogUnrealSharp, Fatal, "Failed to deserialize reflection data JSON for type {0}", *FieldName.GetFullName().ToString());
-	}
-
-	if (Serialize(JsonReflectionData))
-	{
-		return;
+		UE_LOGFMT(LogUnrealSharp, Fatal, "Failed to parse JSON reflection data for type {0}. Check logs for meta data failing to parse.", *FieldName.GetFullName().ToString());
 	}
 	
-	UE_LOGFMT(LogUnrealSharp, Fatal, "Failed to parse JSON reflection data for type {0}. Check logs for meta data failing to parse.", *FieldName.GetFullName().ToString());
+	TOptional<FConstObject> RootObject = GetRootObject(ParsedDocument);
+	if (!Serialize(RootObject.GetValue()))
+	{
+		UE_LOGFMT(LogUnrealSharp, Fatal, "Failed to parse JSON reflection data for type {0}. Check logs for meta data failing to parse.", *FieldName.GetFullName().ToString());
+	}
 }
 
-bool FCSTypeReferenceReflectionData::Serialize(TSharedPtr<FJsonObject> JsonObject)
+bool FCSTypeReferenceReflectionData::Serialize(FConstObject JsonObject)
 {
 	START_JSON_SERIALIZE
 	
@@ -52,43 +44,20 @@ bool FCSTypeReferenceReflectionData::Serialize(TSharedPtr<FJsonObject> JsonObjec
 	END_JSON_SERIALIZE
 }
 
-UCSManagedAssembly* FCSTypeReferenceReflectionData::GetOwningAssemblyChecked() const
+UCSManagedAssembly* FCSTypeReferenceReflectionData::GetDefinitionFieldAssembly() const
 {
 	UCSManagedAssembly* Assembly = UCSManager::Get().FindOrLoadAssembly(AssemblyName);
 	check(::IsValid(Assembly));
 	return Assembly;
 }
 
-UClass* FCSTypeReferenceReflectionData::GetAsClass() const
+UField* FCSTypeReferenceReflectionData::ResolveUField() const
 {
-	UClass* Class = GetOwningAssemblyChecked()->ResolveUField<UClass>(FieldName);
-	ensure(Class);
-	return Class;
+	UCSManagedAssembly* Assembly = GetDefinitionFieldAssembly();
+	return Assembly->ResolveUField(FieldName);
 }
 
-UScriptStruct* FCSTypeReferenceReflectionData::GetAsStruct() const
-{
-	UScriptStruct* Struct = GetOwningAssemblyChecked()->ResolveUField<UScriptStruct>(FieldName);
-	ensure(Struct);
-	return Struct;
-}
-
-UEnum* FCSTypeReferenceReflectionData::GetAsEnum() const
-{
-	return GetOwningAssemblyChecked()->ResolveUField<UEnum>(FieldName);
-}
-
-UClass* FCSTypeReferenceReflectionData::GetAsInterface() const
-{
-	return GetOwningAssemblyChecked()->ResolveUField<UClass>(FieldName);
-}
-
-UDelegateFunction* FCSTypeReferenceReflectionData::GetAsDelegate() const
-{
-	return GetOwningAssemblyChecked()->ResolveUField<UDelegateFunction>(FieldName);
-}
-
-UPackage* FCSTypeReferenceReflectionData::GetAsPackage() const
+UPackage* FCSTypeReferenceReflectionData::GetDefinitionFieldPackage() const
 {
 	return UCSManager::Get().GetPackage(FieldName.GetNamespace());
 }

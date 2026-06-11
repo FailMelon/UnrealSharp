@@ -29,6 +29,23 @@ TSharedPtr<FCSManagedTypeDefinition> FCSManagedTypeDefinition::CreateFromNativeF
 	return NewDefinition;
 }
 
+UField* FCSManagedTypeDefinition::GetDefinition()
+{
+	Compile();
+	return DefinitionField.Get();
+}
+
+void FCSManagedTypeDefinition::Compile()
+{
+	if (!RequiresCompile() || !GetOwningAssembly()->IsAssemblyLoaded())
+	{
+		return;
+	}
+	
+	DirtyFlags = None;
+	Compiler->StartCompilation(SharedThis(this));
+}
+
 #if WITH_EDITOR
 TSharedPtr<FGCHandle> FCSManagedTypeDefinition::GetTypeGCHandle()
 {
@@ -47,12 +64,10 @@ void FCSManagedTypeDefinition::SetTypeGCHandle(uint8* GCHandlePtr)
 	TypeGCHandle = OwningAssembly->AddTypeHandle(ReflectionData->FieldName, GCHandlePtr);
 }
 
-void FCSManagedTypeDefinition::SetDirtyFlags(ECSTypeStructuralFlags InFlags)
+void FCSManagedTypeDefinition::SetDirtyFlags(ECSTypeStructuralFlags InDirtyFlags)
 {
-	DirtyFlags = InFlags;
+	DirtyFlags = InDirtyFlags;
 	
-	// Notify dependent types to rebuild as well. These are spawned by source generators and depend on this type's structure.
-	// Such as the async wrapper classes.
 	for (int32 i = ReflectionData->SourceGeneratorDependencies.Num() - 1; i >= 0; --i)
 	{
 		const FCSFieldName& SourceGeneratorDependency = ReflectionData->SourceGeneratorDependencies[i];
@@ -63,18 +78,12 @@ void FCSManagedTypeDefinition::SetDirtyFlags(ECSTypeStructuralFlags InFlags)
 			UE_LOGFMT(LogUnrealSharp, Verbose, "Failed to find dependent type {0} for dirty propagation of {1}", *SourceGeneratorDependency.GetFullName().ToString(), *ReflectionData->FieldName.GetFullName().ToString());
 			continue;
 		}
+		
+		if (ManagedTypeDefinition->GetDirtyFlags() >= InDirtyFlags)
+		{
+			continue;
+		}
 
-		ManagedTypeDefinition->SetDirtyFlags(InFlags);
+		ManagedTypeDefinition->SetDirtyFlags(InDirtyFlags);
 	}
-}
-
-UField* FCSManagedTypeDefinition::CompileAndGetDefinitionField()
-{
-	if (RequiresRecompile())
-	{
-		DirtyFlags = None;
-		Compiler->RecompileManagedTypeDefinition(SharedThis(this));
-	}
-	
-	return DefinitionField.Get();
 }

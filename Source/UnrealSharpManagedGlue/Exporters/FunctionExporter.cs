@@ -30,7 +30,6 @@ public enum FunctionType
     Normal,
     BlueprintEvent,
     ExtensionOnAnotherClass,
-    InternalWhitelisted,
     GetterSetter,
 };
 
@@ -65,10 +64,10 @@ public class FunctionExporter
     
     public string Modifiers { get; private set; } = "";
 
-    protected bool BlueprintEvent => Function.HasAllFlags(EFunctionFlags.BlueprintEvent);
+    protected bool BlueprintEvent => Function.IsBlueprintEvent();
     protected bool BlueprintNativeEvent => Function.IsBlueprintNativeEvent();
     protected bool BlueprintImplementableEvent => Function.IsBlueprintImplementableEvent();
-    protected bool BlueprintCallable => Function.HasAnyFlags(EFunctionFlags.BlueprintCallable);
+    protected bool BlueprintCallable => Function.IsBlueprintCallable();
     
     protected string InvokeFunction = "";
     protected string InvokeFirstArgument = "";
@@ -412,14 +411,11 @@ public class FunctionExporter
         extensionMethods.Add(newExtensionMethod);
     }
 
-    public static void StartExportingExtensionMethods()
+    public static void BindExtensionMethods()
     {
         foreach (KeyValuePair<UhtPackage, List<ExtensionMethod>> extensionInfo in ExtensionMethods)
         {
-            TaskManager.StartTask(_ =>
-            {
-                ExtensionsClassExporter.ExportExtensionsClass(extensionInfo.Key, extensionInfo.Value); 
-            });
+            ExtensionsClassExporter.ExportExtensionsClass(extensionInfo.Key, extensionInfo.Value); 
         }
     }
     
@@ -514,7 +510,7 @@ public class FunctionExporter
         attributeBuilder.Finish();
         builder.AppendLine(attributeBuilder.ToString());
 
-        if (function.HasAnyFlags(EFunctionFlags.BlueprintCallable))
+        if (function.IsBlueprintCallable())
         {
             builder.AppendLine($"protected virtual {returnType} {methodName}_Implementation({paramsStringApi})");
         
@@ -560,11 +556,9 @@ public class FunctionExporter
             {
                 returnAssignment = $"{paramType} returnValue = ";
             }
-            else if (!parameter.HasAnyFlags(EPropertyFlags.ConstParm)
-                     && !parameter.HasAnyFlags(EPropertyFlags.ReferenceParm)
-                     && parameter.HasAnyFlags(EPropertyFlags.OutParm))
+            else if (!parameter.HasAnyFlags(EPropertyFlags.ConstParm) && !parameter.HasAnyFlags(EPropertyFlags.ReferenceParm) && parameter.HasAnyFlags(EPropertyFlags.OutParm))
             {
-                builder.AppendLine($"{paramType} {parameter.GetParameterName()} = default;");
+                builder.AppendLine($"{paramType} {parameter.GetParameterName()} = default!;");
             }
             else
             {
@@ -576,7 +570,7 @@ public class FunctionExporter
             }
         });
         
-        string implementationFunctionName = function.HasAnyFlags(EFunctionFlags.BlueprintCallable)
+        string implementationFunctionName = function.IsBlueprintCallable()
             ? "_Implementation"
             : string.Empty;
         
@@ -595,7 +589,7 @@ public class FunctionExporter
                 return;
             }
 
-            bool reuseRefMarshallers = parameter.IsRefParam() && !(function.IsBlueprintEvent() && function.HasAnyFlags(EFunctionFlags.BlueprintCallable));
+            bool reuseRefMarshallers = parameter.IsRefParam() && !(function.IsBlueprintEvent() && function.IsBlueprintCallable());
             translator.ExportToNative(builder, parameter, parameter.SourceName, "buffer", parameter.GetOffsetVariableName(), parameter.GetParameterName(), reuseRefMarshallers);
         });
         

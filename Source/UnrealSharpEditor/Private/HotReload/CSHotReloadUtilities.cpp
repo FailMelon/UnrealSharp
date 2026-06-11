@@ -4,11 +4,9 @@
 #include "CSUnrealSharpEditorSettings.h"
 #include "IDirectoryWatcher.h"
 #include "IPlacementModeModule.h"
-#include "Projects.h"
 #include "Engine/InheritableComponentHandler.h"
 #include "Engine/SCS_Node.h"
 #include "Engine/SimpleConstructionScript.h"
-#include "Kismet2/DebuggerCommands.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Utilities/CSAssemblyUtilities.h"
 #include "Utilities/CSClassUtilities.h"
@@ -97,7 +95,7 @@ bool FCSHotReloadUtilities::RecompileDirtyProjects(const TArray<UCSManagedAssemb
 			continue;
 		}
 		
-		AssemblyNames.Add(Assembly->GetAssemblyName().ToString());
+		AssemblyNames.Add(Assembly->GetName());
 	}
 	
 	return UnrealSharpEditorModule.GetManagedEditorCallbacks().RecompileDirtyProjects(&OutExceptionMessage, AssemblyNames);

@@ -6,18 +6,17 @@ public class UnrealSharpCore : ModuleRules
 	public UnrealSharpCore(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-		string managedPath = Path.Combine(PluginDirectory, "Managed");
-		string engineGluePath = Path.Combine(managedPath, "UnrealSharp", "UnrealSharp");
 		
-		PublicDefinitions.Add("GENERATED_GLUE_PATH=" + engineGluePath.Replace("\\","/"));
 		PublicDefinitions.Add("PLUGIN_PATH=" + PluginDirectory.Replace("\\","/"));
-		PublicDefinitions.Add("BUILD_TARGET=" + (int)Target.Type);
+		PublicDefinitions.Add("TARGET_TYPE=" + (int)Target.Type);
+		PublicDefinitions.Add("TARGET_CONFIGURATION=" + (int)Target.Configuration);
 		
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
 				"Core", 
-				"GameplayTags",
+				"GameplayTags", 
+				"UnrealSharpUtilities",
 			}
 			);
 		
@@ -32,7 +31,7 @@ public class UnrealSharpCore : ModuleRules
 				"Projects",
 				"UMG", 
 				"DeveloperSettings", 
-				"UnrealSharpProcHelper", 
+				"UnrealSharpUtilities", 
 				"EnhancedInput", 
 				"UnrealSharpUtilities",
 				"GameplayTags", 
@@ -41,18 +40,11 @@ public class UnrealSharpCore : ModuleRules
 				"FieldNotification",
 				"InputCore",
 				"Json"
-			}
-			);
-
-		if (Target.Version.MajorVersion == 5 && Target.Version.MinorVersion < 5)
-		{
-            PrivateDependencyModuleNames.Add("StructUtils");
-        }
+			});
 
         PublicIncludePaths.AddRange(new string[] { ModuleDirectory });
         PublicDefinitions.Add("ForceAsEngineGlue=1");
-
-        PublicSystemIncludePaths.Add(Path.Combine(managedPath, "DotNetRuntime", "inc"));
+        PublicSystemIncludePaths.Add(Path.Combine(PluginDirectory, "Managed", "DotNetRuntime", "inc"));
 
 		if (Target.bBuildEditor)
 		{

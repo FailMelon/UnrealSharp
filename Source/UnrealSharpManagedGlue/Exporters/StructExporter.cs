@@ -28,7 +28,7 @@ public static class StructExporter
         inheritanceHierarchy.Reverse();
         foreach (UhtStruct inheritance in inheritanceHierarchy)
         {
-            ScriptGeneratorUtilities.GetExportedProperties(inheritance, exportedProperties, getSetBackedProperties);
+            inheritance.GetExportedProperties(exportedProperties, getSetBackedProperties);
         }
         
         // Check there are not properties with the same name, remove otherwise
@@ -57,7 +57,7 @@ public static class StructExporter
         bool isDestructible = structObj.IsStructNativelyDestructible();
         bool isEquatable = structObj.IsStructEquatable(exportedProperties);
         
-        stringBuilder.StartGlueFile(structObj, isBlittable, nullableEnabled);
+        stringBuilder.StartGlueFile(structObj, isBlittable);
                 
         stringBuilder.AppendTooltip(structObj);
         

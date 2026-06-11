@@ -79,7 +79,14 @@ public struct TSoftClassPtr<T> where T : UObject
     public TSubclassOf<T> LoadSynchronous()
     {
         IntPtr handle = FSoftObjectPtrExporter.CallLoadSynchronous(ref SoftObjectPtr.Data);
-        UClass loadedClass = GCHandleUtilities.GetObjectFromHandlePtr<UClass>(handle);
+        UClass? loadedClass = GCHandleUtilities.GetObjectFromHandlePtr<UClass>(handle);
+        
+        if (loadedClass == null)
+        {
+            LogUnrealSharpCore.LogWarning($"Failed to load or cast asset at '{SoftObjectPath}' to '{typeof(T).Name}'");
+            return new TSubclassOf<T>();
+        }
+        
         return new TSubclassOf<T>(loadedClass);
     }
     
@@ -95,11 +102,6 @@ public struct TSoftClassPtr<T> where T : UObject
 
         throw new Exception($"Cannot cast {typeof(T).Name} to {typeof(T2).Name}");
     }
-    
-    public override string ToString()
-    {
-        return SoftObjectPath.ToString();
-    }
 
     private TSubclassOf<T> GetClass()
     {
@@ -112,6 +114,36 @@ public struct TSoftClassPtr<T> where T : UObject
     public static implicit operator TSoftClassPtr<T>(UObject obj) => new TSoftClassPtr<T>(obj);
     public static implicit operator TSubclassOf<T>(TSoftClassPtr<T> obj) => obj.Class;
     public static implicit operator FSoftObjectPath(TSoftClassPtr<T> obj) => obj.SoftObjectPath;
+    
+    public override string ToString()
+    {
+        return SoftObjectPath.ToString();
+    }
+    
+    public static bool operator ==(TSoftClassPtr<T> left, TSoftClassPtr<T> right)
+    {
+        return left.SoftObjectPtr.Equals(right.SoftObjectPtr);
+    }
+
+    public static bool operator !=(TSoftClassPtr<T> left, TSoftClassPtr<T> right)
+    {
+        return !(left == right);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is TSoftObjectPtr<T> other && SoftObjectPtr.Equals(other.SoftObjectPtr);
+    }
+
+    public bool Equals(TSoftObjectPtr<T> other)
+    {
+        return SoftObjectPtr.Equals(other.SoftObjectPtr);
+    }
+
+    public override int GetHashCode()
+    {
+        return SoftObjectPtr.GetHashCode();
+    }
 }
 
 public static class SoftClassPtrExtensions

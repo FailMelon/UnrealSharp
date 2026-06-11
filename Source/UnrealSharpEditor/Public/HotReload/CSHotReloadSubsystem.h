@@ -13,8 +13,6 @@ enum EHotReloadStatus : uint8
 	Inactive,
 	// Actively Hot Reloading
 	Active,
-	// Failed to unload an assembly during Hot Reload
-	FailedToUnload,
 	// Failed to compile the managed code during Hot Reload
 	FailedToCompile
 };
@@ -27,7 +25,7 @@ public:
 
 	// USubsystem interface implementation
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
-	virtual bool ShouldCreateSubsystem(UObject* Outer) const override { return !FApp::IsUnattended() && !IsRunningCommandlet(); }
+	virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
 	virtual void Deinitialize() override;
 	// End of interface
 
@@ -41,11 +39,8 @@ public:
 		return GEditor->GetEditorSubsystem<UCSHotReloadSubsystem>();
 	}
 
-	FSlateIcon GetMenuIcon() const;
-
 	UNREALSHARPEDITOR_API bool IsHotReloading() const { return CurrentHotReloadStatus == Active; }
 	UNREALSHARPEDITOR_API bool HasPendingHotReloadChanges() const;
-	UNREALSHARPEDITOR_API bool HasHotReloadFailed() const { return CurrentHotReloadStatus == FailedToUnload || CurrentHotReloadStatus == FailedToCompile; }
 	
 	UNREALSHARPEDITOR_API void PerformHotReload();
 	

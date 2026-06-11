@@ -78,17 +78,17 @@ void FCSUnrealSharpUtils::PurgeStruct(UStruct* Struct)
 	Struct->ScriptAndPropertyObjectReferences.Empty();
 }
 
-FString FCSUnrealSharpUtils::MakeQuotedPath(const FString& Path)
+FGuid FCSUnrealSharpUtils::ConstructGUIDFromString(const FString& Name)
 {
-	if (Path.IsEmpty())
+	if (Name.IsEmpty())
 	{
-		return TEXT("");
+		UE_LOGFMT(LogUnrealSharpUtilities, Warning, "Tried to construct a GUID from an empty string. Returning an invalid GUID.");
+		return FGuid();
 	}
 
-	if (Path.StartsWith(TEXT("\"")) && Path.EndsWith(TEXT("\"")))
-	{
-		return Path;
-	}
-
-	return FString::Printf(TEXT("\"%s\""), *Path);
+	const uint32 BufferLength = Name.Len() * sizeof(Name[0]);
+	uint32 HashBuffer[5];
+	FSHA1::HashBuffer(*Name, BufferLength, reinterpret_cast<uint8*>(HashBuffer));
+	return FGuid(HashBuffer[1], HashBuffer[2], HashBuffer[3], HashBuffer[4]);
 }
+

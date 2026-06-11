@@ -11,6 +11,7 @@
 #include "Factories/CSFunctionFactory.h"
 #include "Factories/CSPropertyFactory.h"
 #include "UnrealSharpUtils.h"
+#include "Subsystems/CSManagedSubsystemManager.h"
 #include "Utilities/CSClassUtilities.h"
 
 #if WITH_EDITOR
@@ -23,7 +24,7 @@ UCSManagedClassCompiler::UCSManagedClassCompiler()
 	FieldType = UCSClass::StaticClass();
 }
 
-void UCSManagedClassCompiler::Recompile(UField* TypeToRecompile, const TSharedPtr<FCSManagedTypeDefinition>& ManagedTypeDefinition) const
+void UCSManagedClassCompiler::Compile(UField* TypeToRecompile, const TSharedPtr<FCSManagedTypeDefinition>& ManagedTypeDefinition) const
 {
 	UCSClass* Field = static_cast<UCSClass*>(TypeToRecompile);
 	TSharedPtr<FCSClassReflectionData> ClassReflectionData = ManagedTypeDefinition->GetReflectionData<FCSClassReflectionData>();
@@ -61,7 +62,7 @@ void UCSManagedClassCompiler::CreateOrUpdateOwningBlueprint(TSharedPtr<FCSClassR
 	if (!IsValid(Blueprint))
 	{
 		FString BlueprintName = FCSMetaDataUtils::GetAdjustedFieldName(ClassReflectionData->FieldName);
-		UPackage* Package = ClassReflectionData->GetAsPackage();
+		UPackage* Package = ClassReflectionData->GetDefinitionFieldPackage();
 	
 		Blueprint = NewObject<UCSBlueprint>(Package, *BlueprintName, RF_Public | RF_LoadCompleted);
 		Blueprint->GeneratedClass = Field;
@@ -136,7 +137,7 @@ void UCSManagedClassCompiler::PopulateComponentOverrides(TArray<FBPComponentClas
 	
 	for (const FCSComponentOverrideReflectionData& OverrideData : ClassReflectionData->ComponentOverrides)
 	{
-		UClass* ComponentClass = OverrideData.ComponentType.GetAsClass();
+		UClass* ComponentClass = OverrideData.ComponentType.ResolveUField<UClass>();
 		
 		if (!IsValid(ComponentClass))
 		{
@@ -144,7 +145,7 @@ void UCSManagedClassCompiler::PopulateComponentOverrides(TArray<FBPComponentClas
 			continue;
 		}
 		
-		UClass* ParentClass = OverrideData.OwningClass.GetAsClass();
+		UClass* ParentClass = OverrideData.OwningClass.ResolveUField<UClass>();
 		
 		if (!IsValid(ParentClass) || !FCSClassUtilities::IsNativeClass(ParentClass))
 		{
@@ -153,7 +154,6 @@ void UCSManagedClassCompiler::PopulateComponentOverrides(TArray<FBPComponentClas
 		}
 		
 		FObjectProperty* FoundProperty = FindFProperty<FObjectProperty>(ParentClass, OverrideData.PropertyName);
-		
 		if (!FoundProperty)
 		{
 			UE_LOGFMT(LogUnrealSharp, Warning, "Can't find component property {0} on class {1}", *OverrideData.PropertyName.ToString(), *ParentClass->GetName());
@@ -185,7 +185,7 @@ UClass* UCSManagedClassCompiler::TryRedirectSuperClass(TSharedPtr<FCSClassReflec
 {
 	if (!IsValid(CurrentSuperClass) || CurrentSuperClass->GetFName() != ClassReflectionData->ParentClass.FieldName.GetName())
 	{
-		UClass* SuperClass = ClassReflectionData->ParentClass.GetAsClass();
+		UClass* SuperClass = ClassReflectionData->ParentClass.ResolveUField<UClass>();
 		if (const TWeakObjectPtr<UClass>* RedirectedClass = RedirectClasses.Find(SuperClass))
 		{
 			SuperClass = RedirectedClass->Get();
@@ -205,7 +205,7 @@ FString UCSManagedClassCompiler::GetFieldName(TSharedPtr<const FCSTypeReferenceR
 	return FieldName;
 }
 
-TSharedPtr<FCSTypeReferenceReflectionData> UCSManagedClassCompiler::CreateNewReflectionData() const
+TSharedPtr<FCSTypeReferenceReflectionData> UCSManagedClassCompiler::CreateReflectionData() const
 {
 	return MakeShared<FCSClassReflectionData>();
 }
@@ -276,7 +276,7 @@ void UCSManagedClassCompiler::ImplementInterfaces(UClass* ManagedClass, const TA
 {
 	for (const FCSTypeReferenceReflectionData& InterfaceData : Interfaces)
 	{
-		UClass* InterfaceClass = InterfaceData.GetAsInterface();
+		UClass* InterfaceClass = InterfaceData.ResolveUField<UClass>();
 
 		if (!IsValid(InterfaceClass))
 		{
@@ -300,7 +300,7 @@ void UCSManagedClassCompiler::ActivateSubsystem(TSubclassOf<USubsystem> Subsyste
 		return;
 	}
 	
-	UCSManager::Get().ActivateSubsystemClass(SubsystemClass);
+	UCSManagedSubsystemManager::Get()->ActivateSubsystemClass(SubsystemClass);
 }
 
 void UCSManagedClassCompiler::DeactivateSubsystem(TSubclassOf<USubsystem> SubsystemClass)
