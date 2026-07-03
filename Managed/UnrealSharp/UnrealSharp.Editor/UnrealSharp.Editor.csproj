@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <Import Project="..\..\..\UnrealSharp.GeneratedFiles.props" />
+    <Import Project="..\..\..\UnrealSharp.Shared.props" Condition="Exists('..\..\..\UnrealSharp.Shared.props')" />
 
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
@@ -19,6 +19,12 @@
             <OutputItemType>Analyzer</OutputItemType>
             <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
         </ProjectReference>
+        
+        <ProjectReference Include="..\UnrealSharp.GlueGenerator\UnrealSharp.GlueGenerator\UnrealSharp.GlueGenerator.csproj">
+            <OutputItemType>Analyzer</OutputItemType>
+            <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+        </ProjectReference>
+        
       <ProjectReference Include="..\UnrealSharp\UnrealSharp.csproj" />
     </ItemGroup>
 

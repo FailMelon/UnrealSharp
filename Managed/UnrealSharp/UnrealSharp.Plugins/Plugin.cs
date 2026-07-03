@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
+using UnrealSharp.Core;
 using UnrealSharp.Engine.Core.Modules;
 
 namespace UnrealSharp.Plugins;
@@ -11,12 +12,13 @@ public class Plugin
     public WeakReference? Assembly { get; private set; }
     
     private AssemblyLoadContext? _loadContext;
-    private readonly List<IModuleInterface> _moduleInterfaces;
+
+    private readonly List<IModuleInterface> _moduleInterfaces = new();
+    private readonly List<Func<IModuleInterface>> _moduleInitFunctions = new();
     
     public Plugin(AssemblyName assemblyName, bool isCollectible, string assemblyPath)
     {
         AssemblyName = assemblyName;
-        _moduleInterfaces = new List<IModuleInterface>();
         
         Assembly? existingAssembly = AssemblyCache.GetUniqueAssembly(assemblyName.Name!);
         if (existingAssembly != null)
@@ -41,9 +43,14 @@ public class Plugin
         }
     }
 
+    public void AddModuleInterfaceInit(Func<IModuleInterface> initFunction)
+    {
+        _moduleInitFunctions.Add(initFunction);
+    }
+
     public bool Load()
     {
-        if (_loadContext == null || (Assembly != null && Assembly.IsAlive))
+        if (_loadContext == null || Assembly != null)
         {
             return false;
         }
@@ -51,25 +58,22 @@ public class Plugin
         Assembly assembly = _loadContext.LoadFromAssemblyName(AssemblyName);
         Assembly = new WeakReference(assembly);
         
-        Type[] types = assembly.GetTypes();
-            
-        foreach (Type type in types)
+        RuntimeHelpers.RunModuleConstructor(assembly.ManifestModule.ModuleHandle);
+        
+        StartupModule();
+        return true;
+    }
+    
+    public T GetModule<T>() where T : class, IModuleInterface
+    {
+        T? module = _moduleInterfaces.OfType<T>().FirstOrDefault();
+
+        if (module == null)
         {
-            if (type == typeof(IModuleInterface) || !typeof(IModuleInterface).IsAssignableFrom(type))
-            {
-                continue;
-            }
-
-            if (Activator.CreateInstance(type) is not IModuleInterface moduleInterface)
-            {
-                continue;
-            }
-
-            moduleInterface.StartupModule();
-            _moduleInterfaces.Add(moduleInterface);
+            throw new Exception($"Module of type '{typeof(T).Name}' not found.");
         }
 
-        return true;
+        return module;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -78,6 +82,7 @@ public class Plugin
         ShutdownModule();
         
         AssemblyCache.RemoveAssembly(AssemblyName.Name!);
+        GCHandleUtilities.FreeAssembly((Assembly)Assembly!.Target!);
         Assembly = null;
         
         WeakReference loadContextWeak = new WeakReference(_loadContext);
@@ -87,6 +92,19 @@ public class Plugin
         return loadContextWeak;
     }
 
+    public void StartupModule()
+    {
+        _moduleInterfaces.Capacity = _moduleInitFunctions.Count;
+        
+        foreach (Func<IModuleInterface> moduleInterfaceInitFunc in _moduleInitFunctions)
+        {
+            IModuleInterface moduleInterface = moduleInterfaceInitFunc();
+            _moduleInterfaces.Add(moduleInterface);
+            
+            moduleInterface.StartupModule();
+        }
+    }
+    
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void ShutdownModule()
     {
@@ -96,6 +114,7 @@ public class Plugin
         }
 
         _moduleInterfaces.Clear();
+        _moduleInitFunctions.Clear();
     }
 
     public override string ToString()

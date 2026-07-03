@@ -47,15 +47,12 @@ public static class StructExporter
                 propertyNames.Add(scriptName);
             }
         }
-
-        bool nullableEnabled = structObj.HasMetadata(UhtTypeUtilities.NullableEnable);
-        bool isRecordStruct = structObj.HasMetadata("RecordStruct");
+        
         bool isReadOnly = structObj.HasMetadata("ReadOnly");
         bool useProperties = structObj.HasMetadata("UseProperties");
         bool isBlittable = structObj.IsStructBlittable();
         bool isCopyable = structObj.IsStructNativelyCopyable();
         bool isDestructible = structObj.IsStructNativelyDestructible();
-        bool isEquatable = structObj.IsStructEquatable(exportedProperties);
         
         stringBuilder.StartGlueFile(structObj, isBlittable);
                 
@@ -90,13 +87,7 @@ public static class StructExporter
             }
         }
 
-        if (isEquatable)
-        {
-            // If null create the list and add the interface
-            (csInterfaces ??= new()).Add($"IEquatable<{structName}>");
-        }
-
-        stringBuilder.DeclareType(structObj, isRecordStruct ? "record struct" : "struct", structName, csInterfaces: csInterfaces, modifiers: isReadOnly ? " readonly" : null);
+        stringBuilder.DeclareType(structObj,  "record struct", structName, csInterfaces: csInterfaces, modifiers: isReadOnly ? " readonly" : null);
         stringBuilder.AppendNativeTypePtr(structObj);
 
         if (isCopyable)
@@ -153,12 +144,7 @@ public static class StructExporter
                 stringBuilder.CloseBrace();
             }
         }
-
-        if (isEquatable)
-        {
-            ExportStructEquality(structName, stringBuilder, exportedProperties);
-        }
-
+        
         if (structObj.CanSupportArithmetic(exportedProperties))
         {
             ExportStructArithmetic(structName, stringBuilder, exportedProperties);
@@ -183,7 +169,7 @@ public static class StructExporter
         {
             UhtProperty property = exportedProperties[i];
             string scriptName = property.GetPropertyName();
-            PropertyTranslator translator = PropertyTranslatorManager.GetTranslator(property)!;
+            PropertyTranslator translator = property.GetTranslator()!;
 
             translator.ExportConstructorParameter(stringBuilder, property, scriptName);
             if (i < exportedProperties.Count - 1)
@@ -199,95 +185,6 @@ public static class StructExporter
             string scriptName = property.GetPropertyName();
             stringBuilder.AppendLine($"this.{scriptName} = {scriptName};");
         }
-        stringBuilder.CloseBrace();
-    }
-
-    public static void ExportStructEquality(string structName, GeneratorStringBuilder stringBuilder, List<UhtProperty> exportedProperties)
-    {
-        stringBuilder.AppendLine();
-        stringBuilder.AppendLine("public override bool Equals(object? obj)");
-        stringBuilder.OpenBrace();
-        stringBuilder.AppendLine($"return obj is {structName} other && Equals(other);");
-        stringBuilder.CloseBrace();
-        
-        stringBuilder.AppendLine();
-        stringBuilder.AppendLine($"public bool Equals({structName} other)");
-        stringBuilder.OpenBrace();
-        if (exportedProperties.Count == 0)
-        {
-            stringBuilder.AppendLine("return true;");
-        }
-        else
-        {
-            StringBuilder equalitySb = new StringBuilder();
-            for (int i = 0; i < exportedProperties.Count; i++)
-            {
-                UhtProperty property = exportedProperties[i];
-                string scriptName = property.GetPropertyName();
-                equalitySb.Append($"this.{scriptName} == other.{scriptName}");
-                if (i < exportedProperties.Count - 1)
-                {
-                    equalitySb.Append(" && ");
-                }
-            }
-            stringBuilder.AppendLine($"return {equalitySb};");
-        }
-        stringBuilder.CloseBrace();
-        stringBuilder.AppendLine();
-        stringBuilder.AppendLine("public override int GetHashCode()");
-        stringBuilder.OpenBrace();
-        
-        if (exportedProperties.Count == 0)
-        {
-            stringBuilder.AppendLine("return 0;");
-        }
-        
-        // More accurate hashcode equality
-        else if (exportedProperties.Count <= 8)
-        {
-            StringBuilder hashSb = new StringBuilder();
-            for (int i = 0; i < exportedProperties.Count; i++)
-            {
-                UhtProperty property = exportedProperties[i];
-                string scriptName = property.GetPropertyName();
-                hashSb.Append($"{scriptName}");
-                if (i < exportedProperties.Count - 1)
-                {
-                    hashSb.Append(", ");
-                }
-            }
-
-            stringBuilder.AppendLine($"return HashCode.Combine({hashSb});");
-        }
-        // Fallback to xor for more than 8 properties as HashCode.Combine only supports up to 8 parameters
-        else
-        {
-            StringBuilder hashSb = new StringBuilder();
-            for (int i = 0; i < exportedProperties.Count; i++)
-            {
-                UhtProperty property = exportedProperties[i];
-                string scriptName = property.GetPropertyName();
-                hashSb.Append($"{scriptName}.GetHashCode()");
-                if (i < exportedProperties.Count - 1)
-                {
-                    hashSb.Append(" ^ ");
-                }
-            }
-
-            stringBuilder.AppendLine($"return {hashSb};");
-        }
-        stringBuilder.CloseBrace();
-
-        stringBuilder.AppendLine();
-        stringBuilder.AppendLine($"public static bool operator ==({structName} left, {structName} right)");
-        stringBuilder.OpenBrace();
-        stringBuilder.AppendLine("return left.Equals(right);");
-        stringBuilder.CloseBrace();
-
-        stringBuilder.AppendLine();
-        stringBuilder.AppendLine($"public static bool operator !=({structName} left, {structName} right)");
-        stringBuilder.OpenBrace();
-        stringBuilder.AppendLine("return !(left == right);");
         stringBuilder.CloseBrace();
     }
 
@@ -498,7 +395,7 @@ public static class StructExporter
                 builder.AppendLine("NativeHandle = new NativeStructHandle(NativeClassPtr);");
                 builder.AppendLine("fixed (NativeStructHandleData* StructDataPointer = &NativeHandle.Data)");
                 builder.OpenBrace();
-                builder.AppendLine($"IntPtr AllocationPointer = {ExporterCallbacks.UScriptStructCallbacks}.CallGetStructLocation(StructDataPointer, NativeClassPtr);");
+                builder.AppendLine($"IntPtr AllocationPointer = {ExporterCallbacks.Bind_UScriptStruct}.CallGetStructLocation(StructDataPointer, NativeClassPtr);");
             }
             else
             {
@@ -507,7 +404,7 @@ public static class StructExporter
                 builder.OpenBrace();
             }
             
-            builder.AppendLine($"{ExporterCallbacks.UScriptStructCallbacks}.CallNativeCopy(NativeClassPtr, InNativeStruct, (nint) AllocationPointer);");
+            builder.AppendLine($"{ExporterCallbacks.Bind_UScriptStruct}.CallNativeCopy(NativeClassPtr, InNativeStruct, (nint) AllocationPointer);");
             builder.CloseBrace();
         }
         else
@@ -546,7 +443,7 @@ public static class StructExporter
                 builder.AppendLine();
                 builder.AppendLine("fixed (NativeStructHandleData* StructDataPointer = &NativeHandle.Data)");
                 builder.OpenBrace();
-                builder.AppendLine($"IntPtr AllocationPointer = {ExporterCallbacks.UScriptStructCallbacks}.CallGetStructLocation(StructDataPointer, NativeClassPtr);");
+                builder.AppendLine($"IntPtr AllocationPointer = {ExporterCallbacks.Bind_UScriptStruct}.CallGetStructLocation(StructDataPointer, NativeClassPtr);");
             }
             else
             {
@@ -559,7 +456,7 @@ public static class StructExporter
                 builder.OpenBrace();
             }
             
-            builder.AppendLine($"{ExporterCallbacks.UScriptStructCallbacks}.CallNativeCopy(NativeClassPtr, (nint) AllocationPointer, buffer);");
+            builder.AppendLine($"{ExporterCallbacks.Bind_UScriptStruct}.CallNativeCopy(NativeClassPtr, (nint) AllocationPointer, buffer);");
             builder.CloseBrace();
         }
         else

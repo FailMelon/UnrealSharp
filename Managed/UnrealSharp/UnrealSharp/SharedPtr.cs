@@ -4,15 +4,14 @@ using UnrealSharp.Binds;
 namespace UnrealSharp;
 
 [NativeCallbacks]
-public static unsafe partial class IRefCountedObjectExporter
+public static unsafe partial class Bind_IRefCountedObject
 {
-    public static delegate* unmanaged<IntPtr, uint> AddRef;
-    public static delegate* unmanaged<IntPtr, uint> Release;
-    public static delegate* unmanaged<IntPtr, uint> GetRefCount;
+    public static delegate* unmanaged<IntPtr, void> AddRef;
+    public static delegate* unmanaged<IntPtr, void> Release;
 }
 
 [StructLayout(LayoutKind.Sequential)]
-public struct FSharedPtr
+public record struct FSharedPtr
 {
     private IntPtr ReferenceController;
     
@@ -20,7 +19,7 @@ public struct FSharedPtr
     {
         if (Valid)
         {
-            IRefCountedObjectExporter.CallAddRef(ReferenceController);
+            Bind_IRefCountedObject.CallAddRef(ReferenceController);
         }
     }
     
@@ -28,14 +27,8 @@ public struct FSharedPtr
     {
         if (Valid)
         {
-            IRefCountedObjectExporter.CallRelease(ReferenceController);
+            Bind_IRefCountedObject.CallRelease(ReferenceController);
         }
-    }
-
-    public override bool Equals(object? obj)
-    {
-        return obj is FSharedPtr ptr &&
-               ReferenceController == ptr.ReferenceController;
     }
 
     public override int GetHashCode()
@@ -43,16 +36,5 @@ public struct FSharedPtr
         return HashCode.Combine(ReferenceController);
     }
 
-    public uint RefCount => IRefCountedObjectExporter.CallGetRefCount(ReferenceController);
     public bool Valid => ReferenceController != IntPtr.Zero;
-
-    public static bool operator ==(FSharedPtr a, FSharedPtr b)
-    {
-        return a.ReferenceController == b.ReferenceController;
-    }
-
-    public static bool operator !=(FSharedPtr a, FSharedPtr b)
-    {
-        return !(a == b);
-    }
 }

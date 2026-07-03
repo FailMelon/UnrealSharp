@@ -1,5 +1,6 @@
 #include "HotReload/CSHotReloadUtilities.h"
 
+#include "BlueprintActionDatabase.h"
 #include "CSManager.h"
 #include "CSUnrealSharpEditorSettings.h"
 #include "IDirectoryWatcher.h"
@@ -8,17 +9,10 @@
 #include "Engine/SCS_Node.h"
 #include "Engine/SimpleConstructionScript.h"
 #include "Kismet2/KismetEditorUtilities.h"
+#include "Kismet2/StructureEditorUtils.h"
+#include "Types/CSScriptStruct.h"
 #include "Utilities/CSAssemblyUtilities.h"
 #include "Utilities/CSClassUtilities.h"
-
-void FCSHotReloadUtilities::SortDirtiedFiles(TArray<FCSChangedFile>& Files)
-{
-	return Files.Sort([](const FCSChangedFile& A, const FCSChangedFile& B)
-	{
-		return A.ChangeData.Action == FFileChangeData::FCA_Removed &&
-			B.ChangeData.Action != FFileChangeData::FCA_Removed;
-	});
-}
 
 bool FCSHotReloadUtilities::HasFileBeenDirtied(const TArray<FCSChangedFile>& DirtiedFiles, const FString& FilePath, FFileChangeData::EFileChangeAction Action)
 {
@@ -39,6 +33,8 @@ bool FCSHotReloadUtilities::HasFileBeenDirtied(const TArray<FCSChangedFile>& Dir
 
 void FCSHotReloadUtilities::CollectDirtiedFiles(const TArray<FFileChangeData>& ChangedFiles, TArray<FCSChangedFile>& OutDirtied)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FCSHotReloadUtilities::CollectDirtiedFiles)
+	
 	for (const FFileChangeData& Change : ChangedFiles)
 	{
 		FString NormalizedPath = Change.Filename;
@@ -53,11 +49,16 @@ void FCSHotReloadUtilities::CollectDirtiedFiles(const TArray<FFileChangeData>& C
 		OutDirtied.Add(ChangedFile);
 	}
 	
-	SortDirtiedFiles(OutDirtied);
+	return OutDirtied.Sort([](const FCSChangedFile& A, const FCSChangedFile& B)
+	{
+		return A.ChangeData.Action == FFileChangeData::FCA_Removed && B.ChangeData.Action != FFileChangeData::FCA_Removed;
+	});
 }
 
 bool FCSHotReloadUtilities::ApplyDirtiedFiles(const FString& ProjectName, const TArray<FCSChangedFile>& DirtyFiles, FString& OutException)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FCSHotReloadUtilities::ApplyDirtiedFiles)
+	
 	FUnrealSharpEditorModule& EditorModule = FUnrealSharpEditorModule::Get();
 	const FCSManagedEditorCallbacks& Callbacks = EditorModule.GetManagedEditorCallbacks();
 	
@@ -83,6 +84,8 @@ bool FCSHotReloadUtilities::ApplyDirtiedFiles(const FString& ProjectName, const 
 
 bool FCSHotReloadUtilities::RecompileDirtyProjects(const TArray<UCSManagedAssembly*>& Assemblies, FString& OutExceptionMessage)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FCSHotReloadUtilities::RecompileDirtyProjects)
+	
 	FUnrealSharpEditorModule& UnrealSharpEditorModule = FUnrealSharpEditorModule::Get();
 	
 	TArray<FString> AssemblyNames;
@@ -101,7 +104,7 @@ bool FCSHotReloadUtilities::RecompileDirtyProjects(const TArray<UCSManagedAssemb
 	return UnrealSharpEditorModule.GetManagedEditorCallbacks().RecompileDirtyProjects(&OutExceptionMessage, AssemblyNames);
 }
 
-void FCSHotReloadUtilities::RebuildDependentBlueprints(const TSet<uint32>& RebuiltTypes)
+void FCSHotReloadUtilities::RebuildDependentBlueprints(const TSet<FCSObjectID>& RebuiltTypes)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FCSHotReloadUtilities::RebuildDependentBlueprints);
 
@@ -159,9 +162,8 @@ void FCSHotReloadUtilities::RebuildDependentBlueprints(const TSet<uint32>& Rebui
 			{
 				if (UCSManager::Get().IsManagedType(ParentClass))
 				{
-					int32 TypeID = ParentClass->GetUniqueID();
-					
-					if (RebuiltTypes.ContainsByHash(TypeID, TypeID))
+					FCSObjectID ObjectID = ParentClass->GetUniqueID();
+					if (RebuiltTypes.ContainsByHash(ObjectID.Get(), ObjectID))
 					{
 						bNeedsRecompile = true;
 						break;
@@ -193,17 +195,42 @@ void FCSHotReloadUtilities::RefreshPlacementMode()
 	IPlacementModeModule::Get().OnPlaceableItemFilteringChanged().Broadcast();
 }
 
-bool FCSHotReloadUtilities::IsPinAffectedByReload(const FEdGraphPinType& PinType, const TSet<uint32>& RebuiltTypes)
+void FCSHotReloadUtilities::RefreshBlueprintActionDatabase(const TSet<FCSObjectID>& RebuiltTypes)
+{
+	FBlueprintActionDatabase& ActionDatabase = FBlueprintActionDatabase::Get();
+	
+	for (const FCSObjectID& ObjectID : RebuiltTypes)
+	{
+		ActionDatabase.RefreshAssetActions(ObjectID.GetUObject());
+	}
+}
+
+void FCSHotReloadUtilities::RefreshStructs(const TSet<FCSObjectID>& RebuiltTypes)
+{
+	for (const FCSObjectID& ObjectID : RebuiltTypes)
+	{
+		UCSScriptStruct* RebuiltStruct = ObjectID.GetUObject<UCSScriptStruct>();
+		
+		if (!IsValid(RebuiltStruct))
+		{
+			continue;
+		}
+		
+		RebuiltStruct->OnChanged();
+		FStructureEditorUtils::BroadcastPostChange(RebuiltStruct);
+	}
+}
+
+bool FCSHotReloadUtilities::IsPinAffectedByReload(const FEdGraphPinType& PinType, const TSet<FCSObjectID>& RebuiltTypes)
 {
 	UObject* PinSubCategoryObject = PinType.PinSubCategoryObject.Get();
-	
 	if (!IsValid(PinSubCategoryObject))
 	{
 		return false;
 	}
 
-	uint32 TypeID = PinSubCategoryObject->GetUniqueID();
-	if (RebuiltTypes.ContainsByHash(TypeID, TypeID))
+	FCSObjectID ObjectID = PinSubCategoryObject->GetUniqueID();
+	if (RebuiltTypes.ContainsByHash(ObjectID.Get(), ObjectID))
 	{
 		return true;
 	}
@@ -214,11 +241,11 @@ bool FCSHotReloadUtilities::IsPinAffectedByReload(const FEdGraphPinType& PinType
 		return false;
 	}
 
-	uint32 TerminalTypeID = TerminalSubCategoryObject->GetUniqueID();
-	return RebuiltTypes.ContainsByHash(TerminalTypeID, TerminalTypeID);
+	FCSObjectID TerminalObjectID = TerminalSubCategoryObject->GetUniqueID();
+	return RebuiltTypes.ContainsByHash(TerminalObjectID.Get(), TerminalObjectID);
 }
 
-bool FCSHotReloadUtilities::IsNodeAffectedByReload(const UEdGraphNode* Node, const TSet<uint32>& RebuiltTypes)
+bool FCSHotReloadUtilities::IsNodeAffectedByReload(const UEdGraphNode* Node, const TSet<FCSObjectID>& RebuiltTypes)
 {
 	if (const UK2Node_EditablePinBase* EditableNode = Cast<UK2Node_EditablePinBase>(Node))
 	{
@@ -246,7 +273,7 @@ bool FCSHotReloadUtilities::IsNodeAffectedByReload(const UEdGraphNode* Node, con
 	return false;
 }
 
-bool FCSHotReloadUtilities::HasDefaultComponentsBeenAffected(const UBlueprint* Blueprint, const TSet<uint32>& RebuiltTypes)
+bool FCSHotReloadUtilities::HasDefaultComponentsBeenAffected(const UBlueprint* Blueprint, const TSet<FCSObjectID>& RebuiltTypes)
 {
 	auto IsTemplateAffectedByHotReload = [&](const UClass* TemplateClass) -> bool
 	{
@@ -255,8 +282,8 @@ bool FCSHotReloadUtilities::HasDefaultComponentsBeenAffected(const UBlueprint* B
 			return false;
 		}
 
-		int32 TypeID = TemplateClass->GetUniqueID();
-		return RebuiltTypes.ContainsByHash(TypeID, TypeID);
+		FCSObjectID ObjectID = TemplateClass->GetUniqueID();
+		return RebuiltTypes.ContainsByHash(ObjectID.Get(), ObjectID);
 	};
 
 	USimpleConstructionScript* SCS = Blueprint->SimpleConstructionScript;
@@ -295,6 +322,8 @@ bool FCSHotReloadUtilities::HasDefaultComponentsBeenAffected(const UBlueprint* B
 
 void FCSHotReloadUtilities::GetChangedCSharpFiles(const TArray<FFileChangeData>& ChangedFiles, TArray<FFileChangeData>& OutFilteredFiles)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FCSHotReloadUtilities::GetChangedCSharpFiles)
+	
 	OutFilteredFiles.Empty(ChangedFiles.Num());
 	
 	for (const FFileChangeData& ChangedFile : ChangedFiles)
@@ -316,12 +345,7 @@ bool FCSHotReloadUtilities::ShouldDeferHotReloadRequest(const UCSManagedAssembly
 	}
 	
 	const UCSUnrealSharpEditorSettings* Settings = GetDefault<UCSUnrealSharpEditorSettings>();
-	if (Settings->AutomaticHotReloading == OnEditorFocus || Settings->AutomaticHotReloading == Off)
-	{
-		return true;
-	}
-	
-	return false;
+	return Settings->AutomaticHotReloading == OnEditorFocus || Settings->AutomaticHotReloading == Off;
 }
 
 bool FCSHotReloadUtilities::ShouldHotReloadOnEditorFocus(const UCSHotReloadSubsystem* HotReloadSubsystem)

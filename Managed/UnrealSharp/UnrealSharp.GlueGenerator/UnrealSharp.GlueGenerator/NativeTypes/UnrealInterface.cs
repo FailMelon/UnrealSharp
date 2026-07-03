@@ -50,6 +50,8 @@ public record UnrealInterface : UnrealClassBase
 
         ExportWrapperClass(builder);
         ExportMarshaller(builder);
+        
+        builder.GenerateTypeRegistration(this);
     }
     
     private void ExportMarshaller(GeneratorStringBuilder builder)
@@ -67,7 +69,7 @@ public record UnrealInterface : UnrealClassBase
 
     private void ExportImplementsMethod(GeneratorStringBuilder builder)
     {
-        builder.AppendLine("public static bool Implements(UnrealSharp.Core.UnrealSharpObject? obj) => obj != null && (UObjectExporter.CallImplementsInterface(obj.NativeObject, NativeTypePtr).ToManagedBool());");
+        builder.AppendLine("public static bool Implements(UnrealSharp.Core.UnrealSharpObject? obj) => obj != null && (Bind_UObject.CallImplementsInterface(obj.NativeObject, NativeTypePtr).ToManagedBool());");
     }
 
     private void ExportWrapperClass(GeneratorStringBuilder builder)

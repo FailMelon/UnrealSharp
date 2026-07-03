@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "CSBindsRegistry.h"
 #include "CSManagedAssembly.h"
 #include "CSObjectID.h"
 #include "CSManager.generated.h"
@@ -111,7 +112,7 @@ private:
 
 	TWeakObjectPtr<UObject> CurrentWorldContext;
 	
-	FCSManagerInitializedEvent OnCSManagerInitialized;
+	FCSManagerInitializedEvent OnInitialized;
 
 #if WITH_EDITORONLY_DATA
 	FCSClassEvent OnNewClass;

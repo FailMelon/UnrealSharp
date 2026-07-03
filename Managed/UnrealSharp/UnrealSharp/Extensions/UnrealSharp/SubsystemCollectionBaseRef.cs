@@ -1,17 +1,18 @@
 ﻿using UnrealSharp.Core;
+using UnrealSharp.Core.Interop;
 using UnrealSharp.Engine;
 using UnrealSharp.Interop;
 
 namespace UnrealSharp.UnrealSharpCore;
 
-public readonly ref partial struct FSubsystemCollectionBaseRef
+public readonly partial record struct FSubsystemCollectionBaseRef
 {
     private readonly IntPtr _collectionRef;
 
     public T? InitializeDependency<T>(TSubclassOf<T> subsystemClass) where T : USubsystem
     {
-        IntPtr obj = FSubsystemCollectionBaseRefExporter.CallInitializeDependency(_collectionRef, subsystemClass.NativeClass);
-        IntPtr handle = FCSManagerExporter.CallFindManagedObject(obj);
+        IntPtr obj = Bind_FSubsystemCollectionBaseRef.CallInitializeDependency(_collectionRef, subsystemClass.NativeClass);
+        IntPtr handle = Bind_UCSManager.CallFindManagedObject(obj);
         return GCHandleUtilities.GetObjectFromHandlePtr<T>(handle);
     }
 
@@ -22,7 +23,7 @@ public readonly ref partial struct FSubsystemCollectionBaseRef
 
     public T InitializeRequiredSubsystem<T>(TSubclassOf<T> subsystemClass) where T : USubsystem
     {
-        return InitializeDependency<T>(subsystemClass) ?? throw new InvalidOperationException($"Subsystem {typeof(T).Name} is not initialized.");
+        return InitializeDependency(subsystemClass) ?? throw new InvalidOperationException($"Subsystem {typeof(T).Name} is not initialized.");
     }
 
     public T InitializeRequiredSubsystem<T>() where T : USubsystem

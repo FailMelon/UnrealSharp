@@ -8,8 +8,8 @@
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
   
-  <Import Project="$(UnrealSharpPluginDir)UnrealSharp.AOT.props" />
-  <Import Project="$(UnrealSharpPluginDir)UnrealSharp.GeneratedFiles.props" />
+  <Import Project="$(UnrealSharpPluginDir)UnrealSharp.AOT.props" Condition="Exists('$(UnrealSharpPluginDir)UnrealSharp.AOT.props')" />
+  <Import Project="$(UnrealSharpPluginDir)UnrealSharp.Build.props" Condition="Exists('$(UnrealSharpPluginDir)UnrealSharp.Build.props')" />
 
   <ItemGroup>
   
@@ -28,6 +28,11 @@
     <Reference Include="UnrealSharp.Log">
       <HintPath>$(UnrealSharpPluginDir)Binaries\Managed\$(TargetFramework)\UnrealSharp.Log.dll</HintPath>
     </Reference>
+
+    <Reference Include="UnrealSharp.Plugins">
+      <HintPath>$(UnrealSharpPluginDir)Binaries\Managed\$(TargetFramework)\UnrealSharp.Plugins.dll</HintPath>
+    </Reference>
+    
   </ItemGroup>
 
   <ItemGroup Condition="'$(SkipIncludeAnalyzers)' == ''">

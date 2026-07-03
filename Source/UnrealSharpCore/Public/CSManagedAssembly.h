@@ -34,12 +34,12 @@ public:
 	UNREALSHARPCORE_API void UnloadAssembly();
 
 	UNREALSHARPCORE_API bool IsAssemblyLoading() const { return bIsLoading; }
-	UNREALSHARPCORE_API bool IsAssemblyLoaded() const { return AssemblyGCHandle.IsValid() && !AssemblyGCHandle->IsNull(); }
+	UNREALSHARPCORE_API bool IsAssemblyLoaded() const { return AssemblyHandle.IsValid() && !AssemblyHandle->IsNull(); }
 	
 	UNREALSHARPCORE_API const FString& GetAssemblyFilePath() const { return AssemblyFilePath; }
 	UNREALSHARPCORE_API FString GetAssemblyFileName() const { return FPaths::GetCleanFilename(AssemblyFilePath); }
 	
-	UNREALSHARPCORE_API const TMap<FCSFieldName, TSharedPtr<FCSManagedTypeDefinition>>& GetDefinedManagedTypes() const { return DefinedManagedTypes; }
+	UNREALSHARPCORE_API const TMap<FCSFieldName, TSharedPtr<FCSManagedTypeDefinition>>& GetDefinedManagedTypes() const { return ManagedTypeRegistry; }
 	UNREALSHARPCORE_API bool IsCollectible() const { return bIsCollectible; }
 
 #if WITH_EDITOR
@@ -49,11 +49,11 @@ public:
 
 	TSharedPtr<FGCHandle> FindTypeHandle(const FCSFieldName& FieldName);
 	TSharedPtr<FGCHandle> AddTypeHandle(const FCSFieldName& FieldName, uint8* TypeHandle);
-	TSharedPtr<FGCHandle> GetManagedMethod(const TSharedPtr<FGCHandle>& TypeHandle, const FString& MethodName);
+	TSharedPtr<FGCHandle> FindMethodHandle(const TSharedPtr<FGCHandle>& TypeHandle, const FString& MethodName);
 
 	TSharedPtr<FCSManagedTypeDefinition> FindOrAddManagedTypeDefinition(UClass* Field);
 	TSharedPtr<FCSManagedTypeDefinition> FindOrAddManagedTypeDefinition(const FCSFieldName& ClassName);
-	UNREALSHARPCORE_API TSharedPtr<FCSManagedTypeDefinition> FindManagedTypeDefinition(const FCSFieldName& FieldName) const;
+	UNREALSHARPCORE_API TSharedPtr<FCSManagedTypeDefinition> FindManagedTypeDefinition(const FCSFieldName& FieldName) const { return ManagedTypeRegistry.FindRef(FieldName); }
 
 	template<typename T = UField>
 	T* ResolveUField(const FCSFieldName& FieldName) const
@@ -69,22 +69,24 @@ public:
 		return FCSUtilities::FindField<T>(FieldName);
 	}
 
-	void RegisterManagedType(TCHAR* InFieldName, const TCHAR* InNamespace, ECSFieldType FieldType, uint8* TypeGCHandle, TCHAR* NewJsonReflectionData);
+	void RegisterManagedType(TCHAR* InFieldName, const TCHAR* InNamespace, ECSFieldType FieldType, uint8* TypeGCHandle, TCHAR* ReflectionJsonString);
 
 	TSharedPtr<FGCHandle> CreateManagedObjectFromNative(const UObject* Object);
 	TSharedPtr<FGCHandle> CreateManagedObjectFromNative(const UObject* Object, const TSharedPtr<FGCHandle>& TypeGCHandle);
 	TSharedPtr<FGCHandle> GetOrCreateManagedInterface(UObject* Object, UClass* InterfaceClass);
 
-	TSharedPtr<const FGCHandle> GetAssemblyHandle() const { return AssemblyGCHandle; }
+	TSharedPtr<const FGCHandle> GetAssemblyHandle() const { return AssemblyHandle; }
 
 private:
 	void OnTypeReflectionDataChanged(TSharedPtr<FCSManagedTypeDefinition> ManagedTypeDefinition);
 
-	TMap<FCSFieldName, TSharedPtr<FCSManagedTypeDefinition>> DefinedManagedTypes;
-	TArray<TSharedPtr<FCSManagedTypeDefinition>> ManagedTypesQueuedForCompilation;
-	TArray<TSharedPtr<FGCHandle>> AllocatedGCHandles;
-	TMap<FCSFieldName, TSharedPtr<FGCHandle>> ManagedTypeGCHandles;
-	TSharedPtr<FGCHandle> AssemblyGCHandle;
+	TMap<FCSFieldName, TSharedPtr<FCSManagedTypeDefinition>> ManagedTypeRegistry;
+	TArray<TSharedPtr<FCSManagedTypeDefinition>> PendingCompilationTypes;
+	
+	TMap<FCSFieldName, TSharedPtr<FGCHandle>> ManagedTypeHandles;
+	TArray<TSharedPtr<FGCHandle>> ManagedHandles;
+	
+	TSharedPtr<FGCHandle> AssemblyHandle;
 
 	FString AssemblyFilePath;
 	

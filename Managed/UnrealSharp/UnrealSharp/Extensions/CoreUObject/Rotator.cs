@@ -3,7 +3,7 @@ using UnrealSharp.UnrealSharpCore;
 
 namespace UnrealSharp.CoreUObject;
 
-public partial struct FRotator
+public partial record struct FRotator
 {
     /// <summary>
     /// Pitch (degrees) around Y axis
@@ -39,11 +39,6 @@ public partial struct FRotator
         return Pitch.Equals(other.Pitch) && Yaw.Equals(other.Yaw) && Roll.Equals(other.Roll);
     }
 
-    public override bool Equals(object? obj)
-    {
-        return obj is FRotator other && Equals(other);
-    }
-
     public override int GetHashCode()
     {
         return HashCode.Combine(Pitch, Yaw, Roll);
@@ -51,7 +46,7 @@ public partial struct FRotator
     
     public FRotator(FMatrix rotationMatrix)
     {
-        FRotatorExporter.CallFromMatrix(ref this, rotationMatrix);
+        Bind_FRotator.CallFromMatrix(ref this, rotationMatrix);
     }
 
     public FRotator(FVector vec)
@@ -74,22 +69,16 @@ public partial struct FRotator
     {
         get
         {
-            FMatrixExporter.CallFromRotator(out FMatrix rotationMatrix, this);
+            Bind_FMatrix.CallFromRotator(out FMatrix rotationMatrix, this);
             return rotationMatrix;
         }
     }
     
-    public FVector ToVector => FVectorExporter.CallFromRotator(this);
     public bool IsZero => Pitch == 0 && Yaw == 0 && Roll == 0;
     
     public bool IsNearlyZero(float tolerance = 0.0001f)
     {
         return Math.Abs(Pitch) < tolerance && Math.Abs(Yaw) < tolerance && Math.Abs(Roll) < tolerance;
-    }
-    
-    public override string ToString()
-    {
-        return $"Pitch={Pitch}, Yaw={Yaw}, Roll={Roll}";
     }
 
     public static FRotator operator + (FRotator lhs, FRotator rhs)
@@ -152,17 +141,7 @@ public partial struct FRotator
         return rotator * scale;
     }
     
-    public static bool operator == (FRotator left, FRotator right)
-    {
-        float tolerance = 0.0001f;
-
-        return Math.Abs(left.Pitch - right.Pitch) < tolerance &&
-               Math.Abs(left.Roll - right.Roll) < tolerance &&
-               Math.Abs(left.Yaw - right.Yaw) < tolerance;
-    }
-    
-    public static bool operator !=(FRotator left, FRotator right)
-    {
-        return !(left == right);
-    }
+    public static implicit operator FRotator(FQuat quat) => new FRotator(quat);
+    public static implicit operator FRotator(FMatrix matrix) => new FRotator(matrix);
+    public static implicit operator FRotator(FVector vector) => new FRotator(vector);
 }

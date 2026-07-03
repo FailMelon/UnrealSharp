@@ -8,8 +8,10 @@
 #include "CSProjectUtilities.h"
 #include "CSUnrealSharpSettings.h"
 #include "Logging/StructuredLog.h"
-#include "Engine/UserDefinedStruct.h"
 #include "Utilities/CSClassUtilities.h"
+
+#include "Misc/CoreDelegates.h"
+#include "UObject/Package.h"
 
 #ifdef __clang__
 #pragma clang diagnostic ignored "-Wdangling-assignment"
@@ -69,7 +71,7 @@ void UCSManager::Initialize()
 	InitialAssemblyLoad();
 	
 	bHasInitialized = true;
-	OnCSManagerInitialized.Broadcast(*this);
+	OnInitialized.Broadcast(*this);
 }
 
 void UCSManager::NotifyUObjectDeleted(const UObjectBase* Object, int32 Index)
@@ -97,7 +99,7 @@ void UCSManager::NotifyUObjectDeleted(const UObjectBase* Object, int32 Index)
 	Handle->Dispose(AssemblyHandle->GetHandle());
 	 
 	TMap<FCSObjectID, TSharedPtr<FGCHandle>> FoundHandles;
-	if (!ManagedInterfaceWrapperHandles.RemoveAndCopyValueByHash(Index, Index, FoundHandles))
+	if (!ManagedInterfaceWrapperHandles.RemoveAndCopyValueByHash(ObjectID.Get(), ObjectID, FoundHandles))
 	{
 		return;
 	}
@@ -169,7 +171,7 @@ bool UCSManager::IsLoadingAnyAssembly() const
 	{
 		UCSManagedAssembly* Assembly = NameToAssembly.Value;
 		
-		if (!Assembly->IsAssemblyLoading() || Assembly->IsAssemblyLoaded())
+		if (!Assembly->IsAssemblyLoading() && Assembly->IsAssemblyLoaded())
 		{
 			continue;
 		}
@@ -183,12 +185,12 @@ bool UCSManager::IsLoadingAnyAssembly() const
 
 void UCSManager::InitialAssemblyLoad()
 {
-	TArray<FLoadOrderManifest> Manifests;
-	UnrealSharp::Project::DiscoverLoadOrderManifests(Manifests);
+	TArray<FCSLoadOrderManifest> LoadOrderManifests;
+	UnrealSharp::Project::DiscoverLoadOrderManifests(LoadOrderManifests);
 	
-	UE_LOGFMT(LogUnrealSharp, Display, "Discovered {0} load order manifests.", Manifests.Num());
+	UE_LOGFMT(LogUnrealSharp, Display, "Discovered {0} load order manifests.", LoadOrderManifests.Num());
 
-	for (const FLoadOrderManifest& Manifest : Manifests)
+	for (const FCSLoadOrderManifest& Manifest : LoadOrderManifests)
 	{
 		UE_LOGFMT(LogUnrealSharp, Display, "Loading assemblies from manifest: {0} (Priority: {1}", Manifest.Name, Manifest.Priority);
 		
@@ -325,6 +327,6 @@ void UCSManager::AddOrExecuteOnManagerInitialized(const FCSManagerInitializedEve
 	}
 	else
 	{
-		OnCSManagerInitialized.Add(Delegate);
+		OnInitialized.Add(Delegate);
 	}
 }
