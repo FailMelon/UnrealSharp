@@ -88,19 +88,8 @@ public static class SyntaxUtilities
             // New constructor was added or removed
             return true;
         }
-
-        if (!newConstructor.IsEquivalentTo(oldConstructor, topLevel: false))
-        {
-            return true;
-        }
-
-        if (newConstructor.Body == null || oldConstructor.Body == null)
-        {
-            // New body was added or removed
-            return true;
-        }
-
-        return !newConstructor.Body.IsEquivalentTo(oldConstructor);
+        
+        return !newConstructor.IsEquivalentTo(oldConstructor, topLevel: false);
     }
 
     private static ConstructorDeclarationSyntax? GetConstructor(TypeDeclarationSyntax classDeclaration)
