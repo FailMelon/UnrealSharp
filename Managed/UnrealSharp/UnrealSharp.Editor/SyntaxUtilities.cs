@@ -43,14 +43,13 @@ public static class SyntaxUtilities
 
                 if (oldTypeDecl != null)
                 {
-                    if (newTypeDecl.IsEquivalentTo(oldTypeDecl, topLevel: false))
-                    {
-                        continue;
-                    }
-                    
                     if (HasConstructorChanged(newTypeDecl, oldTypeDecl))
                     {
                         dirtyFlags |= ECSTypeStructuralFlags.ConstructorChanges;
+                    }
+                    else if (newTypeDecl.IsEquivalentTo(oldTypeDecl, topLevel: false))
+                    {
+                        continue;
                     }
                 }
             }
@@ -89,8 +88,19 @@ public static class SyntaxUtilities
             // New constructor was added or removed
             return true;
         }
-        
-        return !newConstructor.IsEquivalentTo(oldConstructor, topLevel: false);
+
+        if (!newConstructor.IsEquivalentTo(oldConstructor, topLevel: false))
+        {
+            return true;
+        }
+
+        if (newConstructor.Body == null || oldConstructor.Body == null)
+        {
+            // New body was added or removed
+            return true;
+        }
+
+        return !newConstructor.Body.IsEquivalentTo(oldConstructor);
     }
 
     private static ConstructorDeclarationSyntax? GetConstructor(TypeDeclarationSyntax classDeclaration)
