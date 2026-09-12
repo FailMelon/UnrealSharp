@@ -100,7 +100,7 @@ public static class SyntaxUtilities
             return true;
         }
 
-        return !newConstructor.Body.IsEquivalentTo(oldConstructor);
+        return !newConstructor.Body.IsEquivalentTo(oldConstructor.Body);
     }
 
     private static ConstructorDeclarationSyntax? GetConstructor(TypeDeclarationSyntax classDeclaration)
