@@ -28,12 +28,8 @@ public:
 	
 	static void InvokeManagedMethod(UObject* ObjectToInvokeOn, FFrame& Stack, RESULT_DECL);
 private:
-	static FObjectPropertyBase* FindWorldContextProperty(UFunction* Function, bool& bHasWorldContextMetadata);
-	void CacheWorldContextProperty();
-	bool TryGetExplicitWorldContext(uint8* ParameterBuffer, UObject*& OutWorldContextObject) const;
-
 	TSharedPtr<FGCHandle> MethodHandle = nullptr;
-	FObjectPropertyBase* CachedWorldContextProperty = nullptr;
+
 	bool bHasExplicitWorldContext = false;
 	bool bWorldContextPropertyCached = false;
 };
