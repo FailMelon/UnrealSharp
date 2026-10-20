@@ -24,9 +24,21 @@ DECLARE_UNREALSHARP_BINDER(Bind_UCSManager)
 		UObject* WorldContext = UCSManager::Get().GetCurrentWorldContext();
 		return GEngine->GetWorldFromContextObject(WorldContext, EGetWorldErrorMode::ReturnNull);
 	}
+
+	void PushWorldContext(UObject* WorldContextObject)
+	{
+		UCSManager::Get().PushCurrentWorldContext(WorldContextObject);
+	}
+
+	void PopWorldContext()
+	{
+		UCSManager::Get().PopCurrentWorldContext();
+	}
 	
 	BIND_UNREALSHARP_FUNCTION(FindManagedObject)
 	BIND_UNREALSHARP_FUNCTION(FindOrCreateManagedInterfaceWrapper)
 	BIND_UNREALSHARP_FUNCTION(GetCurrentWorldContext)
 	BIND_UNREALSHARP_FUNCTION(GetCurrentWorldPtr)
+	BIND_UNREALSHARP_FUNCTION(PushWorldContext)
+	BIND_UNREALSHARP_FUNCTION(PopWorldContext)
 }
