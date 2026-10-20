@@ -2,10 +2,9 @@
 #include "CSManagedGCHandle.h"
 #include "CSManager.h"
 #include "CSUnrealSharpSettings.h"
-#include "CSWorldContextScope.h"
 #include "Types/CSClass.h"
 #include "Types/CSSkeletonClass.h"
-#include "UObject/UnrealType.h"
+#include "Engine/World.h"
 
 #include "Blueprint/BlueprintExceptionInfo.h"
 
@@ -69,9 +68,19 @@ void UCSFunctionBase::InvokeManagedMethod(UObject* ObjectToInvokeOn, FFrame& Sta
 	TRACE_CPUPROFILER_EVENT_SCOPE(UCSFunctionBase::InvokeManagedMethod);
 	
 	Stack.Code += !!Stack.Code;
-	UCSFunctionBase* ManagedFunction = static_cast<UCSFunctionBase*>(Stack.CurrentNativeFunction);
 
-	UObject* WorldContextObject = WorldContextObject = IsValid(ObjectToInvokeOn) ? ObjectToInvokeOn : Stack.Object;
+	// Prefer using World as context since it's more stable
+	UObject* WorldContext = nullptr;
+	if (Stack.Object)
+	{
+		UWorld* World = Stack.Object->GetWorld();
+		WorldContext = World ? World : Stack.Object;
+	}
+
+	if (WorldContext)
+	{
+		UCSManager::Get().SetCurrentWorldContext(WorldContext);
+	}
 
 	UCSFunctionBase* ManagedFunction = static_cast<UCSFunctionBase*>(Stack.CurrentNativeFunction);
 

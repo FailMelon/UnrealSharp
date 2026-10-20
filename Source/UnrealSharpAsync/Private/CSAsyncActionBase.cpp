@@ -1,12 +1,8 @@
 ﻿#include "CSAsyncActionBase.h"
 
-#include "Engine/GameInstance.h"
-#include "Engine/World.h"
-
 void UCSAsyncActionBase::Destroy()
 {
-	UWorld* World = GetWorld();
-	if (UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr)
+	if (UGameInstance* GameInstance = GetWorld()->GetGameInstance())
 	{
 		GameInstance->UnregisterReferencedObject(this);
 	}
@@ -34,8 +30,7 @@ void UCSAsyncActionBase::InitializeManagedCallback(FGCHandleIntPtr Callback)
 {
 	ManagedCallback = FGCHandle(Callback);
 
-	UWorld* World = GetWorld();
-	if (UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr)
+	if (UGameInstance* GameInstance = GetWorld()->GetGameInstance())
 	{
 		GameInstance->RegisterReferencedObject(this);
 	}

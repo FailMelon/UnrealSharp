@@ -1,6 +1,4 @@
-#include "CSBindsRegistry.h"
-#include "CSManager.h"
-#include "Engine/World.h"
+﻿#include "CSManager.h"
 #include "Kismet/KismetSystemLibrary.h"
 
 DECLARE_UNREALSHARP_BINDER(Bind_UWorld)
@@ -19,26 +17,17 @@ DECLARE_UNREALSHARP_BINDER(Bind_UWorld)
 			return;
 		}
 
-		if (UWorld* World = Object->GetWorld())
-		{
-			World->GetTimerManager().ClearTimer(*TimerHandle);
-		}
+		Object->GetWorld()->GetTimerManager().ClearTimer(*TimerHandle);
 	}
 
 	void* GetWorldSubsystem(UClass* SubsystemClass, UObject* WorldContextObject)
 	{
-		if (!IsValid(WorldContextObject) || !IsValid(SubsystemClass))
+		if (!IsValid(WorldContextObject))
 		{
 			return nullptr;
 		}
-
-		UWorld* World = UCSManager::Get().ResolveWorldContext(WorldContextObject);
-		if (!IsValid(World))
-		{
-			return nullptr;
-		}
-
-		UWorldSubsystem* WorldSubsystem = World->GetSubsystemBase(SubsystemClass);
+	
+		UWorldSubsystem* WorldSubsystem = WorldContextObject->GetWorld()->GetSubsystemBase(SubsystemClass);
 		return UCSManager::Get().FindManagedObject(WorldSubsystem);
 	}
 
@@ -48,9 +37,7 @@ DECLARE_UNREALSHARP_BINDER(Bind_UWorld)
 		{
 			return nullptr;
 		}
-
-		UWorld* World = UCSManager::Get().ResolveWorldContext(WorldContextObject);
-		return IsValid(World) ? (void*)World->GetNetMode() : nullptr;
+		return (void*)WorldContextObject->GetWorld()->GetNetMode();
 	}
 	
 	BIND_UNREALSHARP_FUNCTION(SetTimer)

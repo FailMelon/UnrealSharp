@@ -7,22 +7,13 @@ namespace UnrealSharp.UnrealSharpAsync;
 
 internal static class AsyncLoadUtilities
 {
-    internal static UWorld World
+    internal static UObject WorldContextObject
     {
         get
         {
-            if (Bind_UCSManager.WorldContextObject is not UObject worldContextObject || !worldContextObject.IsValid())
-            {
-                throw new InvalidOperationException("Async loading requires a valid world context.");
-            }
-
-            UWorld? world = worldContextObject as UWorld ?? worldContextObject.World;
-            if (world is null || !world.IsValid())
-            {
-                throw new InvalidOperationException("The current world context does not resolve to a valid world.");
-            }
-
-            return world;
+            IntPtr worldContextObject = Bind_UCSManager.CallGetCurrentWorldContext();
+            IntPtr worldContextHandle = Bind_UCSManager.CallFindManagedObject(worldContextObject);
+            return GCHandleUtilities.GetObjectFromHandlePtr<UObject>(worldContextHandle)!;
         }
     }
     
@@ -60,7 +51,7 @@ internal partial class UCSAsyncLoadSoftPtr
     internal static async Task<IReadOnlyList<FSoftObjectPath>> LoadAsync(FSoftObjectPath softObjectPath) => await LoadAsync(new List<FSoftObjectPath> { softObjectPath });
     internal static async Task<IReadOnlyList<FSoftObjectPath>> LoadAsync(IReadOnlyList<FSoftObjectPath> softObjectPaths)
     {
-        UWorld world = AsyncLoadUtilities.World;
+        UWorld world = AsyncLoadUtilities.WorldContextObject.World;
         
         UCSAsyncLoadSoftPtr loader = NewObject<UCSAsyncLoadSoftPtr>(world);
         loader._loadedPaths = softObjectPaths;
@@ -99,7 +90,7 @@ internal partial class UCSAsyncLoadPrimaryDataAssets
     internal static async Task<IList<FPrimaryAssetId>> LoadAsync(FPrimaryAssetId primaryAssetId, IList<FName>? assetBundles = null) => await LoadAsync(new List<FPrimaryAssetId> { primaryAssetId }, assetBundles);
     internal static async Task<IList<FPrimaryAssetId>> LoadAsync(IList<FPrimaryAssetId> primaryAssetIds, IList<FName>? assetBundles = null)
     {
-        UWorld world = AsyncLoadUtilities.World;
+        UWorld world = AsyncLoadUtilities.WorldContextObject.World;
         
         UCSAsyncLoadPrimaryDataAssets loader = NewObject<UCSAsyncLoadPrimaryDataAssets>(world);
         loader._loadedIds = primaryAssetIds;

@@ -6,7 +6,6 @@
 
 class UCSScriptStruct;
 class UCSEnum;
-class UWorld;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FCSClassEvent, UCSClass*);
 DECLARE_MULTICAST_DELEGATE_OneParam(FCSStructEvent, UCSScriptStruct*);
@@ -83,37 +82,8 @@ public:
 	UNREALSHARPCORE_API bool IsManagedType(const UField* Field) const { return IsManagedPackage(Field->GetOutermost()); }
 	UNREALSHARPCORE_API bool IsLoadingAnyAssembly() const;
 	
-	UObject* GetCurrentWorldContext() const { return CurrentWorldContextStack.Num() > 0 ? CurrentWorldContextStack.Last().Get() : nullptr; }
-
-	struct FCSCurrentWorldContext
-	{
-	public:
-		FCSCurrentWorldContext(const FCSCurrentWorldContext&) = delete;
-		FCSCurrentWorldContext& operator= (const FCSCurrentWorldContext&) = delete;
-
-		FCSCurrentWorldContext(UObject* WorldContext)
-		{
-			if (WorldContext)
-			{
-				UCSManager::Get().PushCurrentWorldContext(WorldContext);
-				IsValid = true;
-			}
-			else
-			{
-				IsValid = false;
-			}
-		}
-
-		~FCSCurrentWorldContext()
-		{
-			if (IsValid)
-			{
-				UCSManager::Get().PopCurrentWorldContext();
-			}
-		}
-	private:
-		bool IsValid;
-	};
+	void SetCurrentWorldContext(UObject* WorldContext) { CurrentWorldContext = WorldContext; }
+	UObject* GetCurrentWorldContext() const { return CurrentWorldContext.Get(); }
 	
 	TMap<FCSObjectID, TSharedPtr<FGCHandle>>& GetManagedObjectHandles() { return ManagedObjectHandles; }
 	TMap<FCSObjectID, TMap<FCSObjectID, TSharedPtr<FGCHandle>>>& GetManagedInterfaceWrappers() { return ManagedInterfaceWrapperHandles; }
@@ -137,10 +107,7 @@ private:
 	TMap<FCSObjectID, TSharedPtr<FGCHandle>> ManagedObjectHandles;
 	TMap<FCSObjectID, TMap<FCSObjectID, TSharedPtr<FGCHandle>>> ManagedInterfaceWrapperHandles;
 
-	TArray<TWeakObjectPtr<UObject>> CurrentWorldContextStack;
-
-	void PushCurrentWorldContext(UObject* WorldContext) { CurrentWorldContextStack.Push(WorldContext); }
-	void PopCurrentWorldContext() { CurrentWorldContextStack.Pop(); }
+	TWeakObjectPtr<UObject> CurrentWorldContext;
 	
 	FCSManagerInitializedEvent OnInitialized;
 

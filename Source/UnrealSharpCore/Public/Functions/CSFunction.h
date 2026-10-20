@@ -5,7 +5,6 @@
 #include "CSFunction.generated.h"
 
 struct FGCHandle;
-class FObjectPropertyBase;
 class UCSClass;
 
 UCLASS()
@@ -29,7 +28,4 @@ public:
 	static void InvokeManagedMethod(UObject* ObjectToInvokeOn, FFrame& Stack, RESULT_DECL);
 private:
 	TSharedPtr<FGCHandle> MethodHandle = nullptr;
-
-	bool bHasExplicitWorldContext = false;
-	bool bWorldContextPropertyCached = false;
 };
