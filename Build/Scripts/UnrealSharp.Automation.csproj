@@ -17,10 +17,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.VisualStudio.SolutionPersistence" />
-  </ItemGroup>
-
-  <ItemGroup>
 
     <Reference Include="AutomationScripts.Automation">
       <HintPath Condition="'$(TargetFramework)' == 'net10.0'">$(EngineDir)\Binaries\DotNET\AutomationTool\AutomationScripts\Scripts\$(TargetFramework)\AutomationScripts.Automation.dll</HintPath>
@@ -36,6 +32,10 @@
     
     <Reference Include="Microsoft.Extensions.Logging.Abstractions">
       <HintPath>$(EngineDir)\Binaries\DotNET\AutomationTool\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
+    </Reference>
+    
+    <Reference Include="Microsoft.VisualStudio.SolutionPersistence">
+      <HintPath>..\Libs\Microsoft.VisualStudio.SolutionPersistence.dll</HintPath>
     </Reference>
     
     <Reference Include="UnrealBuildTool">
@@ -55,4 +55,5 @@
 
     <Compile Include="..\..\Managed\Shared\*.cs" Link="..\..\Managed\Shared\*.cs" />
   </ItemGroup>
+
 </Project>
