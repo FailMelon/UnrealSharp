@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "CSManagedAssembly.h"
 #include "CSObjectID.h"

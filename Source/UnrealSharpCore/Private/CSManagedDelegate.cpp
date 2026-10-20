@@ -1,4 +1,4 @@
-﻿#include "CSManagedDelegate.h"
+#include "CSManagedDelegate.h"
 
 #include "CSManager.h"
 #include "Engine/World.h"
@@ -19,6 +19,11 @@ void FCSManagedDelegate::Invoke(UObject* WorldContextObject, bool bDispose)
 	{
 		UWorld* World = WorldContextObject->GetWorld();
 		WorldContext = World ? World : WorldContextObject;
+	}
+
+	if (WorldContext)
+	{
+		UCSManager::Get().SetCurrentWorldContext(WorldContext);
 	}
 
 	{
