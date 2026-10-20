@@ -1,4 +1,4 @@
-﻿#include "CSManagedDelegate.h"
+#include "CSManagedDelegate.h"
 
 #include "CSManager.h"
 #include "CSWorldContextScope.h"
@@ -12,9 +12,18 @@ void FCSManagedDelegate::Invoke(UObject* WorldContextObject, bool bDispose)
 		return;
 	}
 
-	FCSWorldContextScope WorldContextScope(WorldContextObject);
+	// Prefer using World as context since it's more stable
+	UObject* WorldContext = nullptr;
+	if (IsValid(WorldContextObject))
+	{
+		UWorld* World = WorldContextObject->GetWorld();
+		WorldContext = World ? World : WorldContextObject;
+	}
 
-	GetManagedCallbacks().InvokeDelegate(CallbackHandle.GetHandle());
+	{
+		UCSManager::FCSCurrentWorldContext CurrentWorldContext(WorldContext);
+		GetManagedCallbacks().InvokeDelegate(CallbackHandle.GetHandle());
+	}
 
 	if (bDispose)
 	{

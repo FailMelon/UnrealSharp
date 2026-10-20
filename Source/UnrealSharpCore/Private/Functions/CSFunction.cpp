@@ -73,9 +73,7 @@ void UCSFunctionBase::InvokeManagedMethod(UObject* ObjectToInvokeOn, FFrame& Sta
 
 	UObject* WorldContextObject = WorldContextObject = IsValid(ObjectToInvokeOn) ? ObjectToInvokeOn : Stack.Object;
 
-	// An explicit context, including an explicitly null context.
-	// Receiver-less nested calls inherit the caller's active scope.
-	FCSWorldContextScope WorldContextScope(WorldContextObject, false);
+	UCSFunctionBase* ManagedFunction = static_cast<UCSFunctionBase*>(Stack.CurrentNativeFunction);
 
 #if WITH_EDITOR
 	// After a full reload, method pointers are stale, so we just lazy update them here.
@@ -86,12 +84,16 @@ void UCSFunctionBase::InvokeManagedMethod(UObject* ObjectToInvokeOn, FFrame& Sta
 #endif
 
 	FString ExceptionMessage;
-	int32 ReturnCode = GetManagedCallbacks().InvokeManagedMethod(
-		UCSManager::Get().FindManagedObject(ObjectToInvokeOn).GetPointer(),
-		ManagedFunction->MethodHandle->GetPointer(),
-		Stack.Locals,
-		RESULT_PARAM,
-		&ExceptionMessage);
+	int32 ReturnCode;
+	{
+		UCSManager::FCSCurrentWorldContext CurrentWorldContext(WorldContext);
+		ReturnCode = GetManagedCallbacks().InvokeManagedMethod(
+			UCSManager::Get().FindManagedObject(ObjectToInvokeOn).GetPointer(),
+			ManagedFunction->MethodHandle->GetPointer(),
+			Stack.Locals,
+			RESULT_PARAM,
+			&ExceptionMessage);
+	}
 	
 	if (ReturnCode == 0)
 	{
