@@ -1,9 +1,9 @@
-#include "CSManagedDelegate.h"
+﻿#include "CSManagedDelegate.h"
 
 #include "CSManager.h"
 #include "Engine/World.h"
 
-void FCSManagedDelegate::Invoke(UObject* WorldContextObject, bool bDispose)
+void FCSManagedDelegate::Invoke(UObject * WorldContextObject, bool bDispose)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FCSManagedDelegate::Invoke);
 
@@ -19,11 +19,6 @@ void FCSManagedDelegate::Invoke(UObject* WorldContextObject, bool bDispose)
 	{
 		UWorld* World = WorldContextObject->GetWorld();
 		WorldContext = World ? World : WorldContextObject;
-	}
-
-	if (WorldContext)
-	{
-		UCSManager::Get().SetCurrentWorldContext(WorldContext);
 	}
 
 	{

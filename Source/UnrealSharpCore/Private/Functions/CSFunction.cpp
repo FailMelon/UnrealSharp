@@ -27,7 +27,7 @@ void UCSFunctionBase::Bind()
 		{
 			continue;
 		}
-		
+
 		SetNativeFunc(Function.Pointer);
 		return;
 	}
@@ -36,20 +36,20 @@ void UCSFunctionBase::Bind()
 bool UCSFunctionBase::UpdateMethodHandle()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UCSFunctionBase::UpdateMethodHandle);
-	
+
 	// Ignore delegate signatures and classes that are not the generated class.
 	// The Blueprint skeleton class is an example of a class that is not the generated class, but still has managed functions.
 	if (HasValidMethodHandle() || !IsOwnedByManagedClass() || GetOwnerClass()->HasAllClassFlags(CLASS_Interface))
 	{
 		return true;
 	}
-	
+
 	UCSClass* ManagedClass = static_cast<UCSClass*>(GetOwnerClass());
 	UCSManagedAssembly* Assembly = ManagedClass->GetOwningAssembly();
-	
+
 	TSharedPtr<FCSManagedTypeDefinition> ClassInfo = ManagedClass->GetManagedTypeDefinition();
 	TSharedPtr<FGCHandle> TypeHandle = ClassInfo->GetTypeGCHandle();
-	
+
 	MethodHandle = Assembly->GetManagedMethod(TypeHandle, FString::Printf(TEXT("Invoke_%s"), *GetName()));
 	return MethodHandle.IsValid();
 }
@@ -59,14 +59,14 @@ bool UCSFunctionBase::IsOwnedByManagedClass() const
 #if WITH_EDITOR
 	return FCSClassUtilities::IsManagedClass(GetOwnerClass());
 #else
-		return true;
+	return true;
 #endif
 }
 
 void UCSFunctionBase::InvokeManagedMethod(UObject* ObjectToInvokeOn, FFrame& Stack, RESULT_DECL)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UCSFunctionBase::InvokeManagedMethod);
-	
+
 	Stack.Code += !!Stack.Code;
 
 	// Prefer using World as context since it's more stable
@@ -75,11 +75,6 @@ void UCSFunctionBase::InvokeManagedMethod(UObject* ObjectToInvokeOn, FFrame& Sta
 	{
 		UWorld* World = Stack.Object->GetWorld();
 		WorldContext = World ? World : Stack.Object;
-	}
-
-	if (WorldContext)
-	{
-		UCSManager::Get().SetCurrentWorldContext(WorldContext);
 	}
 
 	UCSFunctionBase* ManagedFunction = static_cast<UCSFunctionBase*>(Stack.CurrentNativeFunction);
@@ -103,7 +98,7 @@ void UCSFunctionBase::InvokeManagedMethod(UObject* ObjectToInvokeOn, FFrame& Sta
 			RESULT_PARAM,
 			&ExceptionMessage);
 	}
-	
+
 	if (ReturnCode == 0)
 	{
 		return;
@@ -114,7 +109,7 @@ void UCSFunctionBase::InvokeManagedMethod(UObject* ObjectToInvokeOn, FFrame& Sta
 #else
 	const EBlueprintExceptionType::Type ExceptionType = EBlueprintExceptionType::FatalError;
 #endif
-	
+
 	const FBlueprintExceptionInfo ExceptionInfo(ExceptionType, FText::FromString(ExceptionMessage));
 	FBlueprintCoreDelegates::ThrowScriptException(ObjectToInvokeOn, Stack, ExceptionInfo);
 }
