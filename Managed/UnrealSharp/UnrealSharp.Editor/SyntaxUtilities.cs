@@ -56,6 +56,10 @@ public static class SyntaxUtilities
                     {
                         dirtyFlags |= ECSTypeStructuralFlags.ConstructorChanges;
                     }
+                    else if (newTypeDecl.IsEquivalentTo(oldTypeDecl, topLevel: false))
+                    {
+                        continue;
+                    }
                 }
             }
 

@@ -3,7 +3,7 @@
 #include "CSManager.h"
 #include "Engine/World.h"
 
-void FCSManagedDelegate::Invoke(UObject* WorldContextObject, bool bDispose)
+void FCSManagedDelegate::Invoke(UObject * WorldContextObject, bool bDispose)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FCSManagedDelegate::Invoke);
 
